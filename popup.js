@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load saved profiles
     loadProfiles();
+
+    // Load IP information and risk assessment
+    loadIpInfoAndRiskAssessment();
   });
 
   // Set up event listeners
@@ -81,6 +84,96 @@ document.addEventListener('DOMContentLoaded', function() {
       closeClearCookiesModal();
     }
   });
+// 夜间模式初始化和事件监听
+// 夜间模式初始化和事件监听
+// 夜间模式初始化和事件监听
+function initNightMode() {
+  const nightModeToggle = document.getElementById('night-mode-toggle');
+  const brightnessSlider = document.getElementById('brightness');
+  const contrastSlider = document.getElementById('contrast');
+  const quickToggleButton = document.getElementById('quick-night-mode-toggle');
+
+  // 检测浏览器主题设置
+  const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // 加载保存的夜间模式设置，如果没有则使用浏览器主题设置
+  chrome.storage.local.get(['nightMode', 'brightness', 'contrast'], result => {
+    let initialNightMode = prefersDarkMode;
+    if (result.nightMode !== undefined) {
+      initialNightMode = result.nightMode;
+    }
+    nightModeToggle.checked = initialNightMode;
+    document.body.classList.toggle('night-mode', initialNightMode);
+    updateQuickToggleIcon(initialNightMode);
+    
+    if (result.brightness !== undefined) {
+      brightnessSlider.value = result.brightness;
+      document.body.style.filter = `brightness(${result.brightness}%)`;
+    } else {
+      document.body.style.filter = `brightness(80%)`;
+    }
+    if (result.contrast !== undefined) {
+      contrastSlider.value = result.contrast;
+      document.body.style.filter += ` contrast(${result.contrast}%)`;
+    } else {
+      document.body.style.filter += ` contrast(100%)`;
+    }
+  });
+
+  // 夜间模式开关事件监听
+  nightModeToggle.addEventListener('change', function() {
+    const isNightMode = this.checked;
+    document.body.classList.toggle('night-mode', isNightMode);
+    updateQuickToggleIcon(isNightMode);
+    chrome.storage.local.set({ nightMode: isNightMode });
+  });
+
+  // 快速切换按钮事件监听
+  quickToggleButton.addEventListener('click', function() {
+    const currentState = nightModeToggle.checked;
+    const newState = !currentState;
+    nightModeToggle.checked = newState;
+    document.body.classList.toggle('night-mode', newState);
+    updateQuickToggleIcon(newState);
+    chrome.storage.local.set({ nightMode: newState });
+  });
+
+  // 亮度调整事件监听
+  brightnessSlider.addEventListener('input', function() {
+    const brightness = this.value;
+    document.body.style.filter = `brightness(${brightness}%) contrast(${contrastSlider.value}%)`;
+    chrome.storage.local.set({ brightness: brightness });
+  });
+
+  // 对比度调整事件监听
+  contrastSlider.addEventListener('input', function() {
+    const contrast = this.value;
+    document.body.style.filter = `brightness(${brightnessSlider.value}%) contrast(${contrast}%)`;
+    chrome.storage.local.set({ contrast: contrast });
+  });
+  
+  // 监听浏览器主题变化
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    chrome.storage.local.get(['nightMode'], result => {
+      // 只有当用户没有明确设置夜间模式时才跟随系统变化
+      if (result.nightMode === undefined) {
+        const newNightMode = e.matches;
+        nightModeToggle.checked = newNightMode;
+        document.body.classList.toggle('night-mode', newNightMode);
+        updateQuickToggleIcon(newNightMode);
+      }
+    });
+  });
+}
+
+// 更新快速切换按钮图标
+function updateQuickToggleIcon(isNightMode) {
+  const quickToggleButton = document.getElementById('quick-night-mode-toggle');
+  quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
+}
+
+// 在 DOM 加载完成后初始化夜间模式
+initNightMode();
 });
 
 // Get the current active tab
@@ -500,52 +593,40 @@ function importCookies(event) {
   };
 
   reader.readAsText(file);
-
-  // Reset the file input
-  event.target.value = '';
 }
 
-// Open the cookie editor modal
+// Open cookie editor modal
 function openCookieEditor(cookie) {
   currentEditingCookie = cookie;
 
-  // Fill the form with cookie data
+  // Populate form fields with cookie data
   document.getElementById('cookie-name').value = cookie.name;
   document.getElementById('cookie-value').value = cookie.value;
   document.getElementById('cookie-domain').value = cookie.domain;
   document.getElementById('cookie-path').value = cookie.path;
 
-  // Handle expiration date
-  if (cookie.session) {
-    document.getElementById('cookie-session').checked = true;
+  // Set expiration date if it exists
+  if (cookie.expirationDate) {
+    const date = new Date(cookie.expirationDate * 1000);
+    document.getElementById('cookie-expiration').value = date.toISOString().slice(0, 16);
+  } else {
     document.getElementById('cookie-expiration').value = '';
-    document.getElementById('cookie-expiration').disabled = true;
-  } else if (cookie.expirationDate) {
-    document.getElementById('cookie-session').checked = false;
-    document.getElementById('cookie-expiration').disabled = false;
-
-    // Convert UNIX timestamp to local datetime string
-    const expirationDate = new Date(cookie.expirationDate * 1000);
-    const isoString = expirationDate.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
-    document.getElementById('cookie-expiration').value = isoString;
   }
 
-  // Set other cookie properties
+  // Set sameSite value
   document.getElementById('cookie-sameSite').value = cookie.sameSite || 'no_restriction';
+
+  // Set checkbox values
   document.getElementById('cookie-hostOnly').checked = cookie.hostOnly || false;
+  document.getElementById('cookie-session').checked = cookie.session || false;
   document.getElementById('cookie-secure').checked = cookie.secure || false;
   document.getElementById('cookie-httpOnly').checked = cookie.httpOnly || false;
-
-  // Add event listener for session checkbox
-  document.getElementById('cookie-session').addEventListener('change', function() {
-    document.getElementById('cookie-expiration').disabled = this.checked;
-  });
 
   // Show the modal
   document.getElementById('cookie-editor-modal').style.display = 'block';
 }
 
-// Close the cookie editor modal
+// Close cookie editor modal
 function closeCookieEditor() {
   document.getElementById('cookie-editor-modal').style.display = 'none';
   currentEditingCookie = null;
@@ -553,11 +634,20 @@ function closeCookieEditor() {
 
 // Save cookie changes
 function saveCookieChanges() {
-  if (!currentEditingCookie) {
-    return;
-  }
+  if (!currentEditingCookie) return;
 
-  // First, remove the existing cookie
+  const name = document.getElementById('cookie-name').value;
+  const value = document.getElementById('cookie-value').value;
+  const domain = document.getElementById('cookie-domain').value;
+  const path = document.getElementById('cookie-path').value;
+  const expiration = document.getElementById('cookie-expiration').value;
+  const sameSite = document.getElementById('cookie-sameSite').value;
+  const hostOnly = document.getElementById('cookie-hostOnly').checked;
+  const session = document.getElementById('cookie-session').checked;
+  const secure = document.getElementById('cookie-secure').checked;
+  const httpOnly = document.getElementById('cookie-httpOnly').checked;
+
+  // First, remove the existing cookie if it exists
   const oldUrl = (currentEditingCookie.secure ? "https://" : "http://") +
                 (currentEditingCookie.domain.charAt(0) === '.' ? currentEditingCookie.domain.substr(1) : currentEditingCookie.domain) +
                 currentEditingCookie.path;
@@ -566,22 +656,11 @@ function saveCookieChanges() {
     url: oldUrl,
     name: currentEditingCookie.name
   }, () => {
-    // Get values from the form
-    const name = document.getElementById('cookie-name').value;
-    const value = document.getElementById('cookie-value').value;
-    const domain = document.getElementById('cookie-domain').value;
-    const path = document.getElementById('cookie-path').value;
-    const secure = document.getElementById('cookie-secure').checked;
-    const httpOnly = document.getElementById('cookie-httpOnly').checked;
-    const sameSite = document.getElementById('cookie-sameSite').value;
-    const session = document.getElementById('cookie-session').checked;
-
-    // Create URL for the cookie
+    // Now create the new cookie
     const url = (secure ? "https://" : "http://") +
-                (domain.charAt(0) === '.' ? domain.substr(1) : domain) +
-                path;
+               (domain.charAt(0) === '.' ? domain.substr(1) : domain) +
+               path;
 
-    // Create the cookie object
     const newCookie = {
       url: url,
       name: name,
@@ -593,44 +672,40 @@ function saveCookieChanges() {
       sameSite: sameSite
     };
 
-    // Add expiration if it's not a session cookie
-    if (!session) {
-      const expirationStr = document.getElementById('cookie-expiration').value;
-      if (expirationStr) {
-        const expirationDate = new Date(expirationStr);
-        newCookie.expirationDate = Math.floor(expirationDate.getTime() / 1000);
-      }
+    // Add expiration date if specified
+    if (expiration && !session) {
+      const date = new Date(expiration);
+      newCookie.expirationDate = Math.floor(date.getTime() / 1000);
     }
 
-    // Set the new cookie
-    chrome.cookies.set(newCookie, (cookie) => {
-      if (cookie) {
-        // Refresh the cookies list
-        loadCurrentCookies();
-
-        // Close the modal
-        closeCookieEditor();
-
-        // Refresh the current tab
-        chrome.tabs.reload(currentTab.id);
-      } else {
-        alert('Error saving cookie: ' + chrome.runtime.lastError?.message || 'Unknown error');
-      }
+    chrome.cookies.set(newCookie, () => {
+      alert('Cookie updated successfully!');
+      closeCookieEditor();
+      loadCurrentCookies();
     });
   });
 }
 
 // Show clear cookies confirmation modal
 function showClearCookiesConfirmation() {
-  // Set the domain in the confirmation message
-  document.getElementById('clear-domain').textContent = currentDomain;
+  const clearDomainSpan = document.getElementById('clear-domain');
+  clearDomainSpan.textContent = currentDomain;
 
-  // Set the clear subdomains checkbox to match the include subdomains setting
-  document.getElementById('clear-subdomains').checked = includeSubdomains;
+  const cookiesToClearList = document.getElementById('cookies-to-clear-list');
+  cookiesToClearList.innerHTML = 'Loading cookies...';
 
   // Determine which domain to use for cookie retrieval
   let domainFilter;
-  if (includeSubdomains) {
+  const clearSubdomainsCheckbox = document.getElementById('clear-subdomains');
+  
+  // Load saved preference for clearing subdomains
+  chrome.storage.local.get('includeSubdomains', result => {
+    if (result.includeSubdomains !== undefined) {
+      clearSubdomainsCheckbox.checked = result.includeSubdomains;
+    }
+  });
+  
+  if (clearSubdomainsCheckbox.checked) {
     // Get the root domain to include all subdomains
     const rootDomain = extractRootDomain(currentDomain);
     domainFilter = rootDomain;
@@ -639,44 +714,39 @@ function showClearCookiesConfirmation() {
     domainFilter = currentDomain;
   }
 
-  // Get all cookies for the current domain (and subdomains if enabled)
   chrome.cookies.getAll({ domain: domainFilter }, cookies => {
     // Filter cookies to only show those relevant to the current domain or its subdomains
-    const relevantCookies = includeSubdomains
+    const relevantCookies = clearSubdomainsCheckbox.checked
       ? cookies
       : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
 
     if (relevantCookies.length === 0) {
-      alert('No cookies found for this site');
-      return;
+      cookiesToClearList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
+    } else {
+      cookiesToClearList.innerHTML = '';
+      relevantCookies.forEach(cookie => {
+        const cookieItem = document.createElement('div');
+        cookieItem.className = 'cookie-item-confirm';
+        
+        // Show domain for subdomain cookies
+        const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
+          ? `[${cookie.domain}] `
+          : '';
+          
+        cookieItem.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
+        cookiesToClearList.appendChild(cookieItem);
+      });
     }
-
-    // Display the list of cookies to be cleared
-    const cookiesToClearList = document.getElementById('cookies-to-clear-list');
-    cookiesToClearList.innerHTML = '';
-
-    relevantCookies.forEach(cookie => {
-      const cookieItem = document.createElement('div');
-      cookieItem.className = 'cookie-to-clear-item';
-
-      // Show domain for subdomain cookies
-      const domainPrefix = includeSubdomains && cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
-        ? `[${cookie.domain}] `
-        : '';
-
-      cookieItem.textContent = `${domainPrefix}${cookie.name}`;
-      cookiesToClearList.appendChild(cookieItem);
-    });
-
-    // Show the modal
-    document.getElementById('clear-cookies-modal').style.display = 'block';
-
-    // Add event listener for the clear subdomains checkbox
-    document.getElementById('clear-subdomains').addEventListener('change', function() {
-      // Update the list of cookies to clear based on the checkbox
-      showClearCookiesConfirmation();
-    });
   });
+
+  // Add event listener for the checkbox
+  clearSubdomainsCheckbox.onchange = function() {
+    // Reload the list with the new setting
+    showClearCookiesConfirmation();
+  };
+
+  // Show the modal
+  document.getElementById('clear-cookies-modal').style.display = 'block';
 }
 
 // Close clear cookies modal
@@ -686,12 +756,10 @@ function closeClearCookiesModal() {
 
 // Clear all cookies for the current domain
 function clearAllCookies() {
-  // Get the state of the clear subdomains checkbox
-  const clearSubdomains = document.getElementById('clear-subdomains').checked;
-
-  // Determine which domain to use for cookie retrieval
+  const clearSubdomainsCheckbox = document.getElementById('clear-subdomains');
   let domainFilter;
-  if (clearSubdomains) {
+  
+  if (clearSubdomainsCheckbox.checked) {
     // Get the root domain to include all subdomains
     const rootDomain = extractRootDomain(currentDomain);
     domainFilter = rootDomain;
@@ -702,48 +770,94 @@ function clearAllCookies() {
 
   chrome.cookies.getAll({ domain: domainFilter }, cookies => {
     // Filter cookies to only clear those relevant to the current domain or its subdomains
-    const relevantCookies = clearSubdomains
+    const relevantCookies = clearSubdomainsCheckbox.checked
       ? cookies
       : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
 
     if (relevantCookies.length === 0) {
-      alert('No cookies found for this site');
+      alert('No cookies found to clear');
       closeClearCookiesModal();
       return;
     }
 
-    // Create a counter to track when all cookies are removed
-    let removedCount = 0;
-    const totalCount = relevantCookies.length;
-
-    // Remove each cookie
     relevantCookies.forEach(cookie => {
       const url = (cookie.secure ? "https://" : "http://") +
-                  (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
-                  cookie.path;
+                 (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
+                 cookie.path;
 
       chrome.cookies.remove({
         url: url,
         name: cookie.name
-      }, () => {
-        removedCount++;
-
-        // When all cookies are removed
-        if (removedCount === totalCount) {
-          // Refresh the current tab
-          chrome.tabs.reload(currentTab.id, {}, () => {
-            // Close the modal
-            closeClearCookiesModal();
-
-            // Refresh the cookies list
-            loadCurrentCookies();
-
-            // Show success message
-            const subdomainText = clearSubdomains ? ' and subdomains' : '';
-            alert(`Successfully cleared ${totalCount} cookies for ${currentDomain}${subdomainText}. The page has been refreshed.`);
-          });
-        }
       });
+    });
+
+    // Refresh the current tab
+    chrome.tabs.reload(currentTab.id, {}, () => {
+      alert(`${relevantCookies.length} cookies cleared successfully! The page has been refreshed.`);
+      closeClearCookiesModal();
+      loadCurrentCookies();
     });
   });
 }
+
+// Load IP information and risk assessment
+function loadIpInfoAndRiskAssessment() {
+  // Fetch IP information
+  fetch('https://ip234.in/ip.json')
+    .then(response => response.json())
+    .then(data => {
+      const ipInfoDiv = document.getElementById('ip-info');
+      ipInfoDiv.innerHTML = `
+        <p>IP: ${data.ip}</p>
+        <p>City: ${data.city}</p>
+        <p>Country: ${data.country}</p>
+        <p>Organization: ${data.organization}</p>
+        <p>Timezone: ${data.timezone}</p>
+      `;
+    })
+    .catch(error => {
+      document.getElementById('ip-info').textContent = 'Failed to load IP information.';
+      console.error('Error fetching IP info:', error);
+    });
+
+  // Fetch risk assessment
+  fetch('https://ip234.in/f.json')
+    .then(response => response.json())
+    .then(data => {
+      const riskAssessmentDiv = document.getElementById('risk-assessment');
+      const score = data.data.score;
+      const risk = data.data.risk;
+      const color = getRiskColor(score);
+      riskAssessmentDiv.innerHTML = `
+        <p>Risk: <span style="color: ${color}">${risk}</span></p>
+        <p>Score: <span style="color: ${color}">${score}/100</span></p>
+      `;
+    })
+    .catch(error => {
+      document.getElementById('risk-assessment').textContent = 'Failed to load risk assessment.';
+      console.error('Error fetching risk assessment:', error);
+    });
+}
+
+// Get color based on risk score (0-100)
+function getRiskColor(score) {
+  // Convert score to a value between 0 and 1
+  const normalizedScore = score / 100;
+  
+  // Green to Blue gradient
+  // Green: rgb(0, 128, 0)
+  // Blue: rgb(0, 0, 255)
+  const green = Math.round(128 * (1 - normalizedScore));
+  const blue = Math.round(255 * normalizedScore);
+  
+  return `rgb(0, ${green}, ${blue})`;
+}
+
+// 更新快速切换按钮图标
+function updateQuickToggleIcon(isNightMode) {
+  const quickToggleButton = document.getElementById('quick-night-mode-toggle');
+  quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
+}
+
+// 在 DOM 加载完成后初始化夜间模式
+initNightMode();

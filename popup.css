@@ -296,3 +296,84 @@ input[type="text"] {
 .cookie-to-clear-item:last-child {
   border-bottom: none;
 }
+
+/* IP Info and Risk Assessment styles */
+#ip-info, #risk-assessment {
+  margin-bottom: 10px;
+}
+
+#ip-info p, #risk-assessment p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+/* 夜间模式样式 */
+body.night-mode {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.night-mode .container {
+  background-color: #1a1a1a;
+}
+
+.night-mode .section {
+  background-color: #2d2d2d;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.night-mode h1,
+.night-mode h2 {
+  color: #4dabf7;
+}
+
+.night-mode button {
+  background-color: #4dabf7;
+}
+
+.night-mode button:hover {
+  background-color: #339af0;
+}
+
+.night-mode .danger-btn {
+  background-color: #ff6b6b;
+}
+
+.night-mode .danger-btn:hover {
+  background-color: #ff4c4c;
+}
+
+.night-mode input[type="text"],
+.night-mode .form-input {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #444;
+}
+
+.night-mode .cookies-container,
+.night-mode .cookies-list-confirm {
+  background-color: #333;
+  border: 1px solid #444;
+}
+
+.night-mode .cookie-item,
+.night-mode .profile-item,
+.night-mode .cookie-to-clear-item {
+  border-bottom: 1px solid #444;
+}
+
+.night-mode .modal-content {
+  background-color: #2d2d2d;
+}
+
+.night-mode .highlight-text {
+  color: #4dabf7;
+}
+
+.night-mode .subdomain-badge {
+  background-color: #4dabf7;
+}
+
+.night-mode .no-profiles {
+  color: #888;
+}
