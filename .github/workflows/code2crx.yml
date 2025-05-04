@@ -1,0 +1,34 @@
+name: Build and Release Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Package extension
+        run: npx crx pack ./dist --zip ./dist/extension.zip
+
+      - name: Upload to Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ./dist/extension.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
