@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SwitchCookies</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>SwitchCookies</h1>
+
+    <div class="section">
+      <h2>Current Site</h2>
+      <div id="current-site">Loading...</div>
+    </div>
+
+    <div class="section">
+      <h2>Cookie Profiles</h2>
+      <div class="profile-controls">
+        <input type="text" id="profile-name" placeholder="Profile name">
+        <button id="save-profile">Save Current Cookies</button>
+      </div>
+
+      <div id="profiles-list" class="profiles-list">
+        <div class="no-profiles">No saved profiles</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Cookie Management</h2>
+      <div class="checkbox-item include-subdomains">
+        <input type="checkbox" id="include-subdomains" checked>
+        <label for="include-subdomains">Include all subdomains (e.g., www.example.com and login.example.com)</label>
+      </div>
+      <div class="button-group">
+        <button id="export-cookies">Export Cookies</button>
+        <button id="import-cookies">Import Cookies</button>
+        <button id="clear-cookies" class="danger-btn">Clear All Cookies</button>
+        <input type="file" id="import-file" style="display: none;">
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Current Cookies</h2>
+      <div class="cookies-container">
+        <div id="cookies-list" class="cookies-list">Loading cookies...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cookie Editor Modal -->
+  <div id="cookie-editor-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Edit Cookie</h2>
+      <div class="cookie-form">
+        <div class="form-group">
+          <label for="cookie-name">Name</label>
+          <input type="text" id="cookie-name" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="cookie-value">Value</label>
+          <input type="text" id="cookie-value" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="cookie-domain">Domain</label>
+          <input type="text" id="cookie-domain" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="cookie-path">Path</label>
+          <input type="text" id="cookie-path" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="cookie-expiration">Expiration</label>
+          <input type="datetime-local" id="cookie-expiration" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="cookie-sameSite">Same Site</label>
+          <select id="cookie-sameSite" class="form-input">
+            <option value="no_restriction">No Restriction</option>
+            <option value="lax">Lax</option>
+            <option value="strict">Strict</option>
+          </select>
+        </div>
+        <div class="form-group checkbox-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="cookie-hostOnly">
+            <label for="cookie-hostOnly">Host Only</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="cookie-session">
+            <label for="cookie-session">Session</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="cookie-secure">
+            <label for="cookie-secure">Secure</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="cookie-httpOnly">
+            <label for="cookie-httpOnly">Http Only</label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button id="save-cookie-btn">Save</button>
+          <button id="cancel-cookie-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear Cookies Confirmation Modal -->
+  <div id="clear-cookies-modal" class="modal">
+    <div class="modal-content">
+      <span class="close clear-cookies-close">&times;</span>
+      <h2>Clear All Cookies</h2>
+      <p>Are you sure you want to clear all cookies for <span id="clear-domain" class="highlight-text"></span>?</p>
+      <div class="cookies-to-clear">
+        <h3>The following cookies will be removed:</h3>
+        <div id="cookies-to-clear-list" class="cookies-list-confirm"></div>
+      </div>
+      <div class="checkbox-item clear-subdomains">
+        <input type="checkbox" id="clear-subdomains" checked>
+        <label for="clear-subdomains">Include all subdomains</label>
+      </div>
+      <div class="form-actions">
+        <button id="confirm-clear-btn" class="danger-btn">Clear All</button>
+        <button id="cancel-clear-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
