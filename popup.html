@@ -4,6 +4,66 @@
   <title>SwitchCookies</title>
   <meta charset="UTF-8">
   <link rel="stylesheet" href="popup.css">
+  <style>
+    /* 滚动条样式 - 日间模式 */
+    ::-webkit-scrollbar {
+      width: 8px !important;
+      height: 8px !important;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1 !important;
+      border-radius: 4px !important;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #ccc !important;
+      border-radius: 4px !important;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #aaa !important;
+    }
+
+    /* 夜间模式滚动条样式 - 完全覆盖 */
+    html.night-mode ::-webkit-scrollbar,
+    body.night-mode ::-webkit-scrollbar,
+    body.night-mode *::-webkit-scrollbar {
+      width: 8px !important;
+      height: 8px !important;
+    }
+
+    html.night-mode ::-webkit-scrollbar-track,
+    body.night-mode ::-webkit-scrollbar-track,
+    body.night-mode *::-webkit-scrollbar-track {
+      background: #2d2d2d !important;
+      border-radius: 4px !important;
+      border-left: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    html.night-mode ::-webkit-scrollbar-thumb,
+    body.night-mode ::-webkit-scrollbar-thumb,
+    body.night-mode *::-webkit-scrollbar-thumb {
+      background: #111 !important;
+      border-radius: 4px !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    html.night-mode ::-webkit-scrollbar-thumb:hover,
+    body.night-mode ::-webkit-scrollbar-thumb:hover,
+    body.night-mode *::-webkit-scrollbar-thumb:hover {
+      background: #222 !important;
+    }
+
+    html.night-mode ::-webkit-scrollbar-corner,
+    body.night-mode ::-webkit-scrollbar-corner,
+    body.night-mode *::-webkit-scrollbar-corner {
+      background: #2d2d2d !important;
+    }
+  </style>
 </head>
 <body>
   <div class="container">

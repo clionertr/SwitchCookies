@@ -6,6 +6,26 @@ body {
   color: #333;
 }
 
+/* 全局滚动条样式 - 日间模式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
 .container {
   width: 400px;
   padding: 15px;
@@ -320,6 +340,7 @@ body.night-mode {
 .night-mode .section {
   background-color: #2d2d2d;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  border-left: none; /* 移除左侧白线 */
 }
 
 .night-mode h1,
@@ -344,7 +365,8 @@ body.night-mode {
 }
 
 .night-mode input[type="text"],
-.night-mode .form-input {
+.night-mode .form-input,
+.night-mode select {
   background-color: #333;
   color: #e0e0e0;
   border: 1px solid #444;
@@ -354,6 +376,7 @@ body.night-mode {
 .night-mode .cookies-list-confirm {
   background-color: #333;
   border: 1px solid #444;
+  border-left: 1px solid #444; /* 确保左侧边框颜色一致 */
 }
 
 .night-mode .cookie-item,
@@ -376,4 +399,43 @@ body.night-mode {
 
 .night-mode .no-profiles {
   color: #888;
+}
+
+/* 夜间模式滚动条样式 - 完全覆盖 */
+html.night-mode body::-webkit-scrollbar,
+body.night-mode::-webkit-scrollbar,
+body.night-mode *::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+html.night-mode body::-webkit-scrollbar-track,
+body.night-mode::-webkit-scrollbar-track,
+body.night-mode *::-webkit-scrollbar-track {
+  background: #2d2d2d !important;
+  border-radius: 4px !important;
+  border-left: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html.night-mode body::-webkit-scrollbar-thumb,
+body.night-mode::-webkit-scrollbar-thumb,
+body.night-mode *::-webkit-scrollbar-thumb {
+  background: #111 !important;
+  border-radius: 4px !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html.night-mode body::-webkit-scrollbar-thumb:hover,
+body.night-mode::-webkit-scrollbar-thumb:hover,
+body.night-mode *::-webkit-scrollbar-thumb:hover {
+  background: #222 !important;
+}
+
+html.night-mode body::-webkit-scrollbar-corner,
+body.night-mode::-webkit-scrollbar-corner,
+body.night-mode *::-webkit-scrollbar-corner {
+  background: #2d2d2d !important;
 }

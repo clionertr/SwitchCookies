@@ -84,96 +84,190 @@ document.addEventListener('DOMContentLoaded', function() {
       closeClearCookiesModal();
     }
   });
-// 夜间模式初始化和事件监听
-// 夜间模式初始化和事件监听
-// 夜间模式初始化和事件监听
-function initNightMode() {
-  const nightModeToggle = document.getElementById('night-mode-toggle');
-  const brightnessSlider = document.getElementById('brightness');
-  const contrastSlider = document.getElementById('contrast');
-  const quickToggleButton = document.getElementById('quick-night-mode-toggle');
 
-  // 检测浏览器主题设置
-  const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
-  // 加载保存的夜间模式设置，如果没有则使用浏览器主题设置
-  chrome.storage.local.get(['nightMode', 'brightness', 'contrast'], result => {
-    let initialNightMode = prefersDarkMode;
-    if (result.nightMode !== undefined) {
-      initialNightMode = result.nightMode;
-    }
-    nightModeToggle.checked = initialNightMode;
-    document.body.classList.toggle('night-mode', initialNightMode);
-    updateQuickToggleIcon(initialNightMode);
-    
-    if (result.brightness !== undefined) {
-      brightnessSlider.value = result.brightness;
-      document.body.style.filter = `brightness(${result.brightness}%)`;
-    } else {
-      document.body.style.filter = `brightness(80%)`;
-    }
-    if (result.contrast !== undefined) {
-      contrastSlider.value = result.contrast;
-      document.body.style.filter += ` contrast(${result.contrast}%)`;
-    } else {
-      document.body.style.filter += ` contrast(100%)`;
-    }
-  });
+  // 初始化夜间模式
+  initNightMode();
 
-  // 夜间模式开关事件监听
-  nightModeToggle.addEventListener('change', function() {
-    const isNightMode = this.checked;
-    document.body.classList.toggle('night-mode', isNightMode);
-    updateQuickToggleIcon(isNightMode);
-    chrome.storage.local.set({ nightMode: isNightMode });
-  });
+  // 夜间模式初始化和事件监听
+  function initNightMode() {
+    const nightModeToggle = document.getElementById('night-mode-toggle');
+    const brightnessSlider = document.getElementById('brightness');
+    const contrastSlider = document.getElementById('contrast');
+    const quickToggleButton = document.getElementById('quick-night-mode-toggle');
 
-  // 快速切换按钮事件监听
-  quickToggleButton.addEventListener('click', function() {
-    const currentState = nightModeToggle.checked;
-    const newState = !currentState;
-    nightModeToggle.checked = newState;
-    document.body.classList.toggle('night-mode', newState);
-    updateQuickToggleIcon(newState);
-    chrome.storage.local.set({ nightMode: newState });
-  });
+    // 检测浏览器主题设置
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-  // 亮度调整事件监听
-  brightnessSlider.addEventListener('input', function() {
-    const brightness = this.value;
-    document.body.style.filter = `brightness(${brightness}%) contrast(${contrastSlider.value}%)`;
-    chrome.storage.local.set({ brightness: brightness });
-  });
+    // 加载保存的夜间模式设置，如果没有则使用浏览器主题设置
+    chrome.storage.local.get(['nightMode', 'brightness', 'contrast'], result => {
+      let initialNightMode = prefersDarkMode;
+      if (result.nightMode !== undefined) {
+        initialNightMode = result.nightMode;
+      }
+      nightModeToggle.checked = initialNightMode;
+      document.body.classList.toggle('night-mode', initialNightMode);
+      updateQuickToggleIcon(initialNightMode);
+      updateScrollbarStyles(initialNightMode);
 
-  // 对比度调整事件监听
-  contrastSlider.addEventListener('input', function() {
-    const contrast = this.value;
-    document.body.style.filter = `brightness(${brightnessSlider.value}%) contrast(${contrast}%)`;
-    chrome.storage.local.set({ contrast: contrast });
-  });
-  
-  // 监听浏览器主题变化
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    chrome.storage.local.get(['nightMode'], result => {
-      // 只有当用户没有明确设置夜间模式时才跟随系统变化
-      if (result.nightMode === undefined) {
-        const newNightMode = e.matches;
-        nightModeToggle.checked = newNightMode;
-        document.body.classList.toggle('night-mode', newNightMode);
-        updateQuickToggleIcon(newNightMode);
+      if (result.brightness !== undefined) {
+        brightnessSlider.value = result.brightness;
+        document.body.style.filter = `brightness(${result.brightness}%)`;
+      } else {
+        document.body.style.filter = `brightness(80%)`;
+      }
+      if (result.contrast !== undefined) {
+        contrastSlider.value = result.contrast;
+        document.body.style.filter += ` contrast(${result.contrast}%)`;
+      } else {
+        document.body.style.filter += ` contrast(100%)`;
       }
     });
-  });
-}
 
-// 更新快速切换按钮图标
-function updateQuickToggleIcon(isNightMode) {
-  const quickToggleButton = document.getElementById('quick-night-mode-toggle');
-  quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
-}
+    // 夜间模式开关事件监听
+    nightModeToggle.addEventListener('change', function() {
+      const isNightMode = this.checked;
+      document.body.classList.toggle('night-mode', isNightMode);
+      updateQuickToggleIcon(isNightMode);
+      updateScrollbarStyles(isNightMode);
+      chrome.storage.local.set({ nightMode: isNightMode });
+    });
 
-// 在 DOM 加载完成后初始化夜间模式
-initNightMode();
+    // 快速切换按钮事件监听
+    quickToggleButton.addEventListener('click', function() {
+      const currentState = nightModeToggle.checked;
+      const newState = !currentState;
+      nightModeToggle.checked = newState;
+      document.body.classList.toggle('night-mode', newState);
+      updateQuickToggleIcon(newState);
+      updateScrollbarStyles(newState);
+      chrome.storage.local.set({ nightMode: newState });
+    });
+
+    // 亮度调整事件监听
+    brightnessSlider.addEventListener('input', function() {
+      const brightness = this.value;
+      document.body.style.filter = `brightness(${brightness}%) contrast(${contrastSlider.value}%)`;
+      chrome.storage.local.set({ brightness: brightness });
+    });
+
+    // 对比度调整事件监听
+    contrastSlider.addEventListener('input', function() {
+      const contrast = this.value;
+      document.body.style.filter = `brightness(${brightnessSlider.value}%) contrast(${contrast}%)`;
+      chrome.storage.local.set({ contrast: contrast });
+    });
+
+    // 监听浏览器主题变化
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      chrome.storage.local.get(['nightMode'], result => {
+        // 只有当用户没有明确设置夜间模式时才跟随系统变化
+        if (result.nightMode === undefined) {
+          const newNightMode = e.matches;
+          nightModeToggle.checked = newNightMode;
+          document.body.classList.toggle('night-mode', newNightMode);
+          updateQuickToggleIcon(newNightMode);
+        }
+      });
+    });
+  }
+
+  // 更新快速切换按钮图标
+  function updateQuickToggleIcon(isNightMode) {
+    const quickToggleButton = document.getElementById('quick-night-mode-toggle');
+    quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
+  }
+
+  // 强制更新滚动条样式
+  function updateScrollbarStyles(isNightMode) {
+    // 同时更新HTML元素的类
+    document.documentElement.classList.toggle('night-mode', isNightMode);
+
+    // 创建一个临时样式元素强制刷新滚动条样式
+    const styleEl = document.createElement('style');
+
+    if (isNightMode) {
+      // 夜间模式滚动条样式
+      styleEl.textContent = `
+        ::-webkit-scrollbar,
+        *::-webkit-scrollbar {
+          width: 8px !important;
+          height: 8px !important;
+        }
+
+        ::-webkit-scrollbar-track,
+        *::-webkit-scrollbar-track {
+          background: #2d2d2d !important;
+          border-radius: 4px !important;
+          border-left: none !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+
+        ::-webkit-scrollbar-thumb,
+        *::-webkit-scrollbar-thumb {
+          background: #111 !important;
+          border-radius: 4px !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+
+        ::-webkit-scrollbar-thumb:hover,
+        *::-webkit-scrollbar-thumb:hover {
+          background: #222 !important;
+        }
+
+        ::-webkit-scrollbar-corner,
+        *::-webkit-scrollbar-corner {
+          background: #2d2d2d !important;
+        }
+      `;
+    } else {
+      // 日间模式滚动条样式
+      styleEl.textContent = `
+        ::-webkit-scrollbar,
+        *::-webkit-scrollbar {
+          width: 8px !important;
+          height: 8px !important;
+        }
+
+        ::-webkit-scrollbar-track,
+        *::-webkit-scrollbar-track {
+          background: #f1f1f1 !important;
+          border-radius: 4px !important;
+        }
+
+        ::-webkit-scrollbar-thumb,
+        *::-webkit-scrollbar-thumb {
+          background: #ccc !important;
+          border-radius: 4px !important;
+        }
+
+        ::-webkit-scrollbar-thumb:hover,
+        *::-webkit-scrollbar-thumb:hover {
+          background: #aaa !important;
+        }
+      `;
+    }
+
+    // 添加到文档中
+    document.head.appendChild(styleEl);
+
+    // 短暂延迟后移除，以确保样式已被应用
+    setTimeout(() => {
+      document.head.removeChild(styleEl);
+    }, 100);
+
+    // 强制重绘所有可滚动元素
+    const scrollableElements = document.querySelectorAll('.profiles-list, .cookies-container, .modal-content, .cookies-list-confirm');
+    scrollableElements.forEach(el => {
+      // 临时修改样式触发重绘
+      const originalDisplay = el.style.display;
+      el.style.display = 'none';
+      // 强制重排/重绘
+      void el.offsetHeight;
+      el.style.display = originalDisplay;
+    });
+  }
 });
 
 // Get the current active tab
@@ -642,7 +736,7 @@ function saveCookieChanges() {
   const path = document.getElementById('cookie-path').value;
   const expiration = document.getElementById('cookie-expiration').value;
   const sameSite = document.getElementById('cookie-sameSite').value;
-  const hostOnly = document.getElementById('cookie-hostOnly').checked;
+  // 注意：hostOnly 属性在 Chrome 扩展 API 中不直接支持，由 domain 是否以点开头决定
   const session = document.getElementById('cookie-session').checked;
   const secure = document.getElementById('cookie-secure').checked;
   const httpOnly = document.getElementById('cookie-httpOnly').checked;
@@ -697,14 +791,14 @@ function showClearCookiesConfirmation() {
   // Determine which domain to use for cookie retrieval
   let domainFilter;
   const clearSubdomainsCheckbox = document.getElementById('clear-subdomains');
-  
+
   // Load saved preference for clearing subdomains
   chrome.storage.local.get('includeSubdomains', result => {
     if (result.includeSubdomains !== undefined) {
       clearSubdomainsCheckbox.checked = result.includeSubdomains;
     }
   });
-  
+
   if (clearSubdomainsCheckbox.checked) {
     // Get the root domain to include all subdomains
     const rootDomain = extractRootDomain(currentDomain);
@@ -727,12 +821,12 @@ function showClearCookiesConfirmation() {
       relevantCookies.forEach(cookie => {
         const cookieItem = document.createElement('div');
         cookieItem.className = 'cookie-item-confirm';
-        
+
         // Show domain for subdomain cookies
         const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
           ? `[${cookie.domain}] `
           : '';
-          
+
         cookieItem.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
         cookiesToClearList.appendChild(cookieItem);
       });
@@ -758,7 +852,7 @@ function closeClearCookiesModal() {
 function clearAllCookies() {
   const clearSubdomainsCheckbox = document.getElementById('clear-subdomains');
   let domainFilter;
-  
+
   if (clearSubdomainsCheckbox.checked) {
     // Get the root domain to include all subdomains
     const rootDomain = extractRootDomain(currentDomain);
@@ -843,13 +937,13 @@ function loadIpInfoAndRiskAssessment() {
 function getRiskColor(score) {
   // Convert score to a value between 0 and 1
   const normalizedScore = score / 100;
-  
+
   // Green to Blue gradient
   // Green: rgb(0, 128, 0)
   // Blue: rgb(0, 0, 255)
   const green = Math.round(128 * (1 - normalizedScore));
   const blue = Math.round(255 * normalizedScore);
-  
+
   return `rgb(0, ${green}, ${blue})`;
 }
 
@@ -858,6 +952,3 @@ function updateQuickToggleIcon(isNightMode) {
   const quickToggleButton = document.getElementById('quick-night-mode-toggle');
   quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
 }
-
-// 在 DOM 加载完成后初始化夜间模式
-initNightMode();
