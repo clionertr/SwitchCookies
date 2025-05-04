@@ -30,7 +30,9 @@ SwitchCookies 是一个浏览器扩展，旨在帮助用户管理不同网站的
 ### 安装
 
 ~~从release中下载crx文件安装~~
-- 下载本仓库的zip文件，解压，在chrome://extensions/加载已解压的扩展程序
+- 下载本仓库的zip文件
+- 解压到一文件夹
+- 在chrome://extensions/加载已解压的扩展程序（需打开开发者模式），选择这个文件夹
 ### 使用
 
 ![扩展截图1](images/image2.png)
