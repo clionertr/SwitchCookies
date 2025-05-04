@@ -197,7 +197,7 @@ input[type="text"] {
 
 .modal-content {
   background-color: #fff;
-  margin: 50px auto;
+  margin: 0 auto;
   padding: 20px;
   border-radius: 8px;
   width: 80%;
@@ -205,9 +205,10 @@ input[type="text"] {
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  position: relative;
-  top: 50%;
-  transform: translateY(-50%);
+  position: absolute;
+  /* 位置会由JavaScript动态设置，跟随滚动条 */
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .close {

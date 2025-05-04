@@ -85,6 +85,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // 监听窗口大小变化，重新调整模态窗口位置
+  window.addEventListener('resize', () => {
+    // 使用防抖动处理，避免频繁调整
+    if (window._resizeTimer) {
+      clearTimeout(window._resizeTimer);
+    }
+
+    window._resizeTimer = setTimeout(() => {
+      if (modal.style.display === 'block') {
+        centerModalInViewport(modal);
+      }
+      if (clearCookiesModal.style.display === 'block') {
+        centerModalInViewport(clearCookiesModal);
+      }
+    }, 100); // 100ms延迟
+  });
+
   // 初始化夜间模式
   initNightMode();
 
@@ -717,13 +734,23 @@ function openCookieEditor(cookie) {
   document.getElementById('cookie-httpOnly').checked = cookie.httpOnly || false;
 
   // Show the modal
-  document.getElementById('cookie-editor-modal').style.display = 'block';
+  const modal = document.getElementById('cookie-editor-modal');
+  modal.style.display = 'block';
+
+  // Center the modal in the viewport
+  centerModalInViewport(modal);
 }
 
 // Close cookie editor modal
 function closeCookieEditor() {
   document.getElementById('cookie-editor-modal').style.display = 'none';
   currentEditingCookie = null;
+
+  // 移除滚动事件监听器
+  if (window._modalScrollHandler) {
+    window.removeEventListener('scroll', window._modalScrollHandler);
+    window._modalScrollHandler = null;
+  }
 }
 
 // Save cookie changes
@@ -840,12 +867,22 @@ function showClearCookiesConfirmation() {
   };
 
   // Show the modal
-  document.getElementById('clear-cookies-modal').style.display = 'block';
+  const modal = document.getElementById('clear-cookies-modal');
+  modal.style.display = 'block';
+
+  // Center the modal in the viewport
+  centerModalInViewport(modal);
 }
 
 // Close clear cookies modal
 function closeClearCookiesModal() {
   document.getElementById('clear-cookies-modal').style.display = 'none';
+
+  // 移除滚动事件监听器
+  if (window._modalScrollHandler) {
+    window.removeEventListener('scroll', window._modalScrollHandler);
+    window._modalScrollHandler = null;
+  }
 }
 
 // Clear all cookies for the current domain
@@ -951,4 +988,79 @@ function getRiskColor(score) {
 function updateQuickToggleIcon(isNightMode) {
   const quickToggleButton = document.getElementById('quick-night-mode-toggle');
   quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
+}
+
+// 根据当前滚动位置显示模态窗口，确保完全可见
+function centerModalInViewport(modal) {
+  if (!modal) return;
+
+  const modalContent = modal.querySelector('.modal-content');
+  if (!modalContent) return;
+
+  // 获取当前滚动位置
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
+  // 获取视口高度和宽度
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+
+  // 重置之前的样式以便获取自然高度
+  modalContent.style.top = '';
+  modalContent.style.transform = 'translateX(-50%)';
+
+  // 获取模态窗口内容的高度
+  const modalHeight = modalContent.offsetHeight;
+
+  // 计算模态窗口的理想位置 - 当前滚动位置加上一些偏移
+  let topPosition = scrollTop + 100; // 从滚动顶部偏移100px
+
+  // 确保模态窗口不会超出视口底部
+  const maxTopPosition = scrollTop + viewportHeight - modalHeight - 20; // 底部留20px边距
+
+  // 如果计算的位置会导致模态窗口超出视口底部，则调整位置
+  if (topPosition > maxTopPosition && maxTopPosition > scrollTop) {
+    topPosition = maxTopPosition;
+  }
+
+  // 确保模态窗口至少部分在视口内
+  if (topPosition < scrollTop) {
+    topPosition = scrollTop + 20; // 顶部留20px边距
+  }
+
+  // 设置模态窗口位置
+  modalContent.style.top = topPosition + 'px';
+
+  // 添加滚动事件监听器，使模态窗口跟随滚动
+  const scrollHandler = () => {
+    const newScrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollDiff = newScrollTop - scrollTop;
+
+    // 更新模态窗口位置，跟随滚动
+    const currentTop = parseInt(modalContent.style.top) || topPosition;
+    modalContent.style.top = (currentTop + scrollDiff) + 'px';
+
+    // 更新滚动位置记录
+    scrollTop = newScrollTop;
+  };
+
+  // 清除之前的滚动事件监听器
+  window.removeEventListener('scroll', window._modalScrollHandler);
+
+  // 保存当前的滚动事件监听器，以便后续清除
+  window._modalScrollHandler = scrollHandler;
+
+  // 添加新的滚动事件监听器
+  window.addEventListener('scroll', window._modalScrollHandler);
+
+  // 当模态窗口关闭时，移除滚动事件监听器
+  const closeHandler = () => {
+    window.removeEventListener('scroll', window._modalScrollHandler);
+    window._modalScrollHandler = null;
+
+    // 移除这个一次性的事件监听器
+    modal.removeEventListener('click', closeHandler);
+  };
+
+  // 添加一次性事件监听器
+  modal.addEventListener('click', closeHandler);
 }
