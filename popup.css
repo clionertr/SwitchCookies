@@ -104,6 +104,11 @@ input[type="text"] {
   border-bottom: 1px solid #eee;
 }
 
+.profile-item.matching {
+  background-color: #f0f7ff;
+  border-left: 3px solid #4285f4;
+}
+
 .profile-item:last-child {
   border-bottom: none;
 }
@@ -118,7 +123,7 @@ input[type="text"] {
   font-weight: bold;
 }
 
-.subdomain-badge {
+.subdomain-badge, .matching-badge {
   display: inline-block;
   background-color: #4285f4;
   color: white;
@@ -126,6 +131,10 @@ input[type="text"] {
   padding: 2px 6px;
   border-radius: 10px;
   margin-right: 5px;
+}
+
+.matching-badge {
+  background-color: #34a853;
 }
 
 .cookie-count {
@@ -389,6 +398,11 @@ body.night-mode {
   border-bottom: 1px solid #444;
 }
 
+.night-mode .profile-item.matching {
+  background-color: #1e3a5f;
+  border-left: 3px solid #4dabf7;
+}
+
 .night-mode .modal-content {
   background-color: #2d2d2d;
 }
@@ -399,6 +413,10 @@ body.night-mode {
 
 .night-mode .subdomain-badge {
   background-color: #4dabf7;
+}
+
+.night-mode .matching-badge {
+  background-color: #34a853;
 }
 
 .night-mode .no-profiles {

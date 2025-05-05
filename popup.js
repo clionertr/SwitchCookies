@@ -402,18 +402,50 @@ function loadProfiles() {
 
     profilesList.innerHTML = '';
 
-    for (const [profileName, profile] of Object.entries(profiles)) {
+    // Convert profiles object to array for sorting
+    const profilesArray = Object.entries(profiles).map(([name, profile]) => ({
+      name,
+      profile,
+      // Check if profile matches current domain
+      isMatching: isProfileMatchingCurrentDomain(profile)
+    }));
+
+    // Sort profiles: matching profiles first, then by name
+    profilesArray.sort((a, b) => {
+      // First sort by matching status (matching profiles first)
+      if (a.isMatching && !b.isMatching) return -1;
+      if (!a.isMatching && b.isMatching) return 1;
+      // Then sort alphabetically by name
+      return a.name.localeCompare(b.name);
+    });
+
+    // Create profile elements
+    profilesArray.forEach(({ name, profile, isMatching }) => {
       const profileItem = document.createElement('div');
       profileItem.className = 'profile-item';
+
+      // Add matching class for styling
+      if (isMatching) {
+        profileItem.classList.add('matching');
+      }
 
       const profileInfoDiv = document.createElement('div');
       profileInfoDiv.className = 'profile-info';
 
       const profileNameSpan = document.createElement('span');
       profileNameSpan.className = 'profile-name';
-      profileNameSpan.textContent = profileName;
+      profileNameSpan.textContent = name;
 
       profileInfoDiv.appendChild(profileNameSpan);
+
+      // Add matching indicator if the profile matches current domain
+      if (isMatching) {
+        const matchingBadge = document.createElement('span');
+        matchingBadge.className = 'matching-badge';
+        matchingBadge.title = 'Matches current site';
+        matchingBadge.textContent = 'Current Site';
+        profileInfoDiv.appendChild(matchingBadge);
+      }
 
       // Add subdomain indicator if the profile includes subdomains
       if (profile.includesSubdomains) {
@@ -435,11 +467,11 @@ function loadProfiles() {
 
       const applyButton = document.createElement('button');
       applyButton.textContent = 'Apply';
-      applyButton.addEventListener('click', () => applyProfile(profileName));
+      applyButton.addEventListener('click', () => applyProfile(name));
 
       const deleteButton = document.createElement('button');
       deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', () => deleteProfile(profileName));
+      deleteButton.addEventListener('click', () => deleteProfile(name));
 
       actionsDiv.appendChild(applyButton);
       actionsDiv.appendChild(deleteButton);
@@ -448,8 +480,37 @@ function loadProfiles() {
       profileItem.appendChild(actionsDiv);
 
       profilesList.appendChild(profileItem);
-    }
+    });
   });
+}
+
+// Check if a profile matches the current domain
+function isProfileMatchingCurrentDomain(profile) {
+  // Exact domain match
+  if (profile.domain === currentDomain) {
+    return true;
+  }
+
+  // Check if profile domain is a subdomain of current domain or vice versa
+  const profileRootDomain = extractRootDomain(profile.domain);
+  const currentRootDomain = extractRootDomain(currentDomain);
+
+  // If root domains match and profile includes subdomains
+  if (profileRootDomain === currentRootDomain && profile.includesSubdomains) {
+    return true;
+  }
+
+  // Check if profile domain is a parent domain of current domain
+  if (currentDomain.endsWith('.' + profile.domain)) {
+    return true;
+  }
+
+  // Check if current domain is a parent domain of profile domain
+  if (profile.domain.endsWith('.' + currentDomain)) {
+    return true;
+  }
+
+  return false;
 }
 
 // Save current cookies as a profile
@@ -562,6 +623,7 @@ function applyProfile(profileName) {
       chrome.tabs.reload(currentTab.id, {}, () => {
         alert(`Profile "${profileName}" applied successfully! The page has been refreshed.`);
         loadCurrentCookies();
+        loadProfiles(); // Reload profiles to update matching status
       });
     });
   });
@@ -696,6 +758,7 @@ function importCookies(event) {
         chrome.tabs.reload(currentTab.id, {}, () => {
           alert('Cookies imported successfully! The page has been refreshed.');
           loadCurrentCookies();
+          loadProfiles(); // Reload profiles to update matching status
         });
       });
     } catch (error) {
@@ -927,6 +990,7 @@ function clearAllCookies() {
       alert(`${relevantCookies.length} cookies cleared successfully! The page has been refreshed.`);
       closeClearCookiesModal();
       loadCurrentCookies();
+      loadProfiles(); // Reload profiles to update matching status
     });
   });
 }
