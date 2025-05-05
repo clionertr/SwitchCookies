@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Set up event listeners
   document.getElementById('save-profile').addEventListener('click', saveCurrentProfile);
   document.getElementById('export-cookies').addEventListener('click', exportCookies);
+  document.getElementById('export-all-cookies').addEventListener('click', exportAllCookies);
   document.getElementById('import-cookies').addEventListener('click', () => {
     document.getElementById('import-file').click();
   });
@@ -731,6 +732,49 @@ function exportCookies() {
 
     const subdomainSuffix = includeSubdomains ? '-with-subdomains' : '';
     const exportFileDefaultName = `cookies-${currentDomain}${subdomainSuffix}-${new Date().toISOString().slice(0, 10)}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  });
+}
+
+// Export ALL cookies from the browser
+function exportAllCookies() {
+  // Show a confirmation dialog with security warning
+  if (!confirm('警告：导出全部Cookies存在安全风险，可能导致账户泄露！\n\n确定要继续导出全部Cookies吗？')) {
+    return;
+  }
+
+  // Get all cookies from all domains
+  chrome.cookies.getAll({}, cookies => {
+    if (cookies.length === 0) {
+      alert('No cookies found to export');
+      return;
+    }
+
+    // Group cookies by domain for better organization
+    const cookiesByDomain = {};
+    cookies.forEach(cookie => {
+      const domain = cookie.domain;
+      if (!cookiesByDomain[domain]) {
+        cookiesByDomain[domain] = [];
+      }
+      cookiesByDomain[domain].push(cookie);
+    });
+
+    const cookiesData = {
+      allDomains: true,
+      cookiesByDomain: cookiesByDomain,
+      totalCookies: cookies.length,
+      exportedAt: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(cookiesData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+    const exportFileDefaultName = `all-cookies-${new Date().toISOString().slice(0, 10)}.json`;
 
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);

@@ -77,6 +77,14 @@ button:hover {
   background-color: #d33426;
 }
 
+.warning-btn {
+  background-color: #f4b400;
+}
+
+.warning-btn:hover {
+  background-color: #e0a800;
+}
+
 input[type="text"] {
   padding: 8px;
   border: 1px solid #ddd;
@@ -371,6 +379,38 @@ input[type="text"] {
 .button-group {
   display: flex;
   flex-wrap: wrap;
+}
+
+.export-all-container {
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px dashed #f4b400;
+  border-radius: 4px;
+  background-color: #fff8e6;
+}
+
+.security-warning {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+
+.warning-icon {
+  font-size: 18px;
+  margin-right: 5px;
+}
+
+.warning-text {
+  font-size: 13px;
+  color: #d14836;
+  font-weight: bold;
+  line-height: 1.4;
+}
+
+/* Night mode styles for export all container */
+.night-mode .export-all-container {
+  background-color: #332b00;
+  border-color: #f4b400;
 }
 
 .form-actions {
