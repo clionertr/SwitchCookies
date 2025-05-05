@@ -605,3 +605,27 @@ body.night-mode::-webkit-scrollbar-corner,
 body.night-mode *::-webkit-scrollbar-corner {
   background: #2d2d2d !important;
 }
+
+/* 统一夜间模式与语言切换按钮样式 */
+#quick-night-mode-toggle,
+#lang-switch-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  margin-bottom: 0;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#quick-night-mode-toggle:hover,
+#lang-switch-btn:hover {
+  background-color: #3367d6;
+}

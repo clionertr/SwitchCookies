@@ -67,79 +67,89 @@
 </head>
 <body>
   <div class="container">
-<button id="quick-night-mode-toggle" title="切换夜间模式">🌙</button>
-    <h1>SwitchCookies</h1>
+<!-- 语言切换按钮 -->
+<div style="display: flex; align-items: center; gap: 8px;">
+  <button id="quick-night-mode-toggle" title="切换夜间模式">🌙</button>
+  <div class="lang-switcher">
+    <button id="lang-switch-btn" title="Language">🌐</button>
+    <select id="lang-select" style="display: none; margin-left: 4px;">
+      <option value="zh-CN">简体中文</option>
+      <option value="en-US">English</option>
+    </select>
+  </div>
+</div>
+    <h1 data-i18n="title">SwitchCookies</h1>
 
     <div class="section">
-      <h2>Current Site</h2>
-      <div id="current-site">Loading...</div>
+      <h2 data-i18n="current_site">Current Site</h2>
+      <div id="current-site" data-i18n="current_site_loading">Loading...</div>
     </div>
 
     <div class="section">
-      <h2>Cookie Profiles</h2>
+      <h2 data-i18n="cookie_profiles">Cookie Profiles</h2>
       <div class="profile-controls">
-        <input type="text" id="profile-name" placeholder="Profile name">
-        <button id="save-profile">Save Current Cookies</button>
+        <input type="text" id="profile-name" data-i18n-placeholder="profile_name_placeholder" placeholder="Profile name">
+        <button id="save-profile" data-i18n="save_current_cookies">Save Current Cookies</button>
       </div>
 
       <div id="profiles-list" class="profiles-list">
-        <div class="no-profiles">No saved profiles</div>
+        <div class="no-profiles" data-i18n="no_saved_profiles">No saved profiles</div>
       </div>
     </div>
 
     <div class="section">
-      <h2>Cookie Management</h2>
+      <h2 data-i18n="cookie_management">Cookie Management</h2>
       <div class="checkbox-item include-subdomains">
         <input type="checkbox" id="include-subdomains" checked>
-        <label for="include-subdomains">Include all subdomains (e.g., www.example.com and login.example.com)</label>
+        <label for="include-subdomains" data-i18n="include_all_subdomains">Include all subdomains (e.g., www.example.com and login.example.com)</label>
       </div>
       <div class="button-group">
-        <button id="export-cookies">Export Cookies</button>
-        <button id="import-cookies">Import Cookies</button>
-        <button id="clear-cookies" class="danger-btn">Clear All Cookies</button>
+        <button id="export-cookies" data-i18n="export_cookies">Export Cookies</button>
+        <button id="import-cookies" data-i18n="import_cookies">Import Cookies</button>
+        <button id="clear-cookies" class="danger-btn" data-i18n="clear_all_cookies">Clear All Cookies</button>
         <input type="file" id="import-file" style="display: none;">
       </div>
       <div class="export-all-container">
-        <button id="export-all-cookies" class="warning-btn">导出全部Cookies</button>
+        <button id="export-all-cookies" class="warning-btn" data-i18n="export_all_cookies">导出全部Cookies</button>
         <div class="security-warning">
           <span class="warning-icon">⚠️</span>
-          <span class="warning-text">警告：导出全部Cookies存在安全风险，可能导致账户泄露，请谨慎操作。</span>
+          <span class="warning-text" data-i18n="export_all_warning">警告：导出全部Cookies存在安全风险，可能导致账户泄露，请谨慎操作。</span>
         </div>
       </div>
     </div>
 
     <div class="section">
-      <h2>Current Cookies</h2>
+      <h2 data-i18n="current_cookies">Current Cookies</h2>
       <div class="cookie-search-container">
         <div class="search-input-wrapper">
-          <input type="text" id="cookie-search" placeholder="Search cookies..." autocomplete="off">
-          <button id="clear-search" class="clear-search-btn" title="Clear search">×</button>
+          <input type="text" id="cookie-search" data-i18n-placeholder="search_cookies_placeholder" placeholder="Search cookies..." autocomplete="off">
+          <button id="clear-search" class="clear-search-btn" title="Clear search" data-i18n="clear_search_btn">×</button>
         </div>
         <div id="search-autocomplete" class="search-autocomplete"></div>
       </div>
       <div class="cookies-container">
-        <div id="cookies-list" class="cookies-list">Loading cookies...</div>
+        <div id="cookies-list" class="cookies-list" data-i18n="loading_cookies">Loading cookies...</div>
       </div>
     </div>
 
     <div class="section">
-      <h2>IP Information</h2>
-      <div id="ip-info">Loading IP information...</div>
-      <h2>Risk Assessment</h2>
-      <div id="risk-assessment">Loading risk assessment...</div>
+      <h2 data-i18n="ip_info">IP Information</h2>
+      <div id="ip-info" data-i18n="loading_ip_info">Loading IP information...</div>
+      <h2 data-i18n="risk_assessment">Risk Assessment</h2>
+      <div id="risk-assessment" data-i18n="loading_risk_assessment">Loading risk assessment...</div>
     </div>
 <div class="section">
-    <h2>夜间模式</h2>
+    <h2 data-i18n="night_mode">夜间模式</h2>
     <div class="checkbox-item">
       <input type="checkbox" id="night-mode-toggle">
-      <label for="night-mode-toggle">启用夜间模式</label>
+      <label for="night-mode-toggle" data-i18n="enable_night_mode">启用夜间模式</label>
     </div>
     <div class="form-group">
-      <label for="brightness">亮度</label>
+      <label for="brightness" data-i18n="brightness">亮度</label>
       <input type="range" id="brightness" min="50" max="100" value="80">
     </div>
     <div class="form-group">
-      <label for="contrast">对比度</label>
+      <label for="contrast" data-i18n="contrast">对比度</label>
       <input type="range" id="contrast" min="80" max="120" value="100">
     </div>
   </div>
@@ -149,57 +159,57 @@
   <div id="cookie-editor-modal" class="modal">
     <div class="modal-content">
       <span class="close">&times;</span>
-      <h2>Edit Cookie</h2>
+      <h2 data-i18n="edit_cookie">Edit Cookie</h2>
       <div class="cookie-form">
         <div class="form-group">
-          <label for="cookie-name">Name</label>
+          <label for="cookie-name" data-i18n="cookie_name">Name</label>
           <input type="text" id="cookie-name" class="form-input">
         </div>
         <div class="form-group">
-          <label for="cookie-value">Value</label>
+          <label for="cookie-value" data-i18n="cookie_value">Value</label>
           <input type="text" id="cookie-value" class="form-input">
         </div>
         <div class="form-group">
-          <label for="cookie-domain">Domain</label>
+          <label for="cookie-domain" data-i18n="cookie_domain">Domain</label>
           <input type="text" id="cookie-domain" class="form-input">
         </div>
         <div class="form-group">
-          <label for="cookie-path">Path</label>
+          <label for="cookie-path" data-i18n="cookie_path">Path</label>
           <input type="text" id="cookie-path" class="form-input">
         </div>
         <div class="form-group">
-          <label for="cookie-expiration">Expiration</label>
+          <label for="cookie-expiration" data-i18n="cookie_expiration">Expiration</label>
           <input type="datetime-local" id="cookie-expiration" class="form-input">
         </div>
         <div class="form-group">
-          <label for="cookie-sameSite">Same Site</label>
+          <label for="cookie-sameSite" data-i18n="cookie_same_site">Same Site</label>
           <select id="cookie-sameSite" class="form-input">
-            <option value="no_restriction">No Restriction</option>
-            <option value="lax">Lax</option>
-            <option value="strict">Strict</option>
+            <option value="no_restriction" data-i18n="no_restriction">No Restriction</option>
+            <option value="lax" data-i18n="lax">Lax</option>
+            <option value="strict" data-i18n="strict">Strict</option>
           </select>
         </div>
         <div class="form-group checkbox-group">
           <div class="checkbox-item">
             <input type="checkbox" id="cookie-hostOnly">
-            <label for="cookie-hostOnly">Host Only</label>
+            <label for="cookie-hostOnly" data-i18n="host_only">Host Only</label>
           </div>
           <div class="checkbox-item">
             <input type="checkbox" id="cookie-session">
-            <label for="cookie-session">Session</label>
+            <label for="cookie-session" data-i18n="session">Session</label>
           </div>
           <div class="checkbox-item">
             <input type="checkbox" id="cookie-secure">
-            <label for="cookie-secure">Secure</label>
+            <label for="cookie-secure" data-i18n="secure">Secure</label>
           </div>
           <div class="checkbox-item">
             <input type="checkbox" id="cookie-httpOnly">
-            <label for="cookie-httpOnly">Http Only</label>
+            <label for="cookie-httpOnly" data-i18n="http_only">Http Only</label>
           </div>
         </div>
         <div class="form-actions">
-          <button id="save-cookie-btn">Save</button>
-          <button id="cancel-cookie-btn">Cancel</button>
+          <button id="save-cookie-btn" data-i18n="save">Save</button>
+          <button id="cancel-cookie-btn" data-i18n="cancel">Cancel</button>
         </div>
       </div>
     </div>
@@ -209,19 +219,19 @@
   <div id="clear-cookies-modal" class="modal">
     <div class="modal-content">
       <span class="close clear-cookies-close">&times;</span>
-      <h2>Clear All Cookies</h2>
-      <p>Are you sure you want to clear all cookies for <span id="clear-domain" class="highlight-text"></span>?</p>
+      <h2 data-i18n="clear_all_cookies_modal">Clear All Cookies</h2>
+      <p data-i18n="clear_all_cookies_confirm">Are you sure you want to clear all cookies for <span id="clear-domain" class="highlight-text"></span>?</p>
       <div class="cookies-to-clear">
-        <h3>The following cookies will be removed:</h3>
+        <h3 data-i18n="cookies_to_be_removed">The following cookies will be removed:</h3>
         <div id="cookies-to-clear-list" class="cookies-list-confirm"></div>
       </div>
       <div class="checkbox-item clear-subdomains">
         <input type="checkbox" id="clear-subdomains" checked>
-        <label for="clear-subdomains">Include all subdomains</label>
+        <label for="clear-subdomains" data-i18n="include_all_subdomains_modal">Include all subdomains</label>
       </div>
       <div class="form-actions">
-        <button id="confirm-clear-btn" class="danger-btn">Clear All</button>
-        <button id="cancel-clear-btn">Cancel</button>
+        <button id="confirm-clear-btn" class="danger-btn" data-i18n="clear_all">Clear All</button>
+        <button id="cancel-clear-btn" data-i18n="cancel">Cancel</button>
       </div>
     </div>
   </div>

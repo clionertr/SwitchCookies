@@ -6,6 +6,191 @@ let currentEditingCookie = null;
 let includeSubdomains = true; // Default to true
 let allCookies = []; // Store all cookies for search functionality
 let searchTimeout = null; // For debouncing search input
+// ===== 多语言支持 =====
+const LANGUAGES = {
+  "zh-CN": {
+    title: "SwitchCookies",
+    current_site: "当前站点",
+    current_site_loading: "加载中...",
+    cookie_profiles: "Cookie 配置",
+    profile_name_placeholder: "配置名称",
+    save_current_cookies: "保存当前Cookies",
+    no_saved_profiles: "暂无已保存配置",
+    cookie_management: "Cookie 管理",
+    include_all_subdomains: "包含所有子域名（如：www.example.com 和 login.example.com）",
+    export_cookies: "导出Cookies",
+    import_cookies: "导入Cookies",
+    clear_all_cookies: "清除所有Cookies",
+    export_all_cookies: "导出全部Cookies",
+    export_all_warning: "警告：导出全部Cookies存在安全风险，可能导致账户泄露，请谨慎操作。",
+    current_cookies: "当前Cookies",
+    search_cookies_placeholder: "搜索Cookies...",
+    clear_search_btn: "×",
+    loading_cookies: "正在加载Cookies...",
+    no_cookies_found: "未找到该站点的Cookies",
+    no_matching_cookies: "未找到匹配的Cookies",
+    edit: "编辑",
+    matches_current_site: "匹配当前站点",
+    all_subdomains: "全部子域名",
+    includes_cookies_from_subdomains: "包含来自子域名的Cookies",
+    ip_info: "IP信息",
+    loading_ip_info: "正在加载IP信息...",
+    risk_assessment: "风险评估",
+    loading_risk_assessment: "正在加载风险评估...",
+    night_mode: "夜间模式",
+    enable_night_mode: "启用夜间模式",
+    brightness: "亮度",
+    contrast: "对比度",
+    edit_cookie: "编辑Cookie",
+    cookie_name: "名称",
+    cookie_value: "值",
+    cookie_domain: "域名",
+    cookie_path: "路径",
+    cookie_expiration: "过期时间",
+    cookie_same_site: "Same Site",
+    no_restriction: "无限制",
+    lax: "Lax",
+    strict: "Strict",
+    host_only: "仅主机",
+    session: "会话",
+    secure: "安全",
+    http_only: "Http Only",
+    save: "保存",
+    cancel: "取消",
+    clear_all_cookies_modal: "清除所有Cookies",
+    clear_all_cookies_confirm: "确定要清除 <span id=\"clear-domain\" class=\"highlight-text\"></span> 的所有Cookies吗？",
+    cookies_to_be_removed: "以下Cookies将被移除：",
+    include_all_subdomains_modal: "包含所有子域名",
+    clear_all: "全部清除"
+  },
+  "en-US": {
+    title: "SwitchCookies",
+    current_site: "Current Site",
+    current_site_loading: "Loading...",
+    cookie_profiles: "Cookie Profiles",
+    profile_name_placeholder: "Profile name",
+    save_current_cookies: "Save Current Cookies",
+    no_saved_profiles: "No saved profiles",
+    cookie_management: "Cookie Management",
+    include_all_subdomains: "Include all subdomains (e.g., www.example.com and login.example.com)",
+    export_cookies: "Export Cookies",
+    import_cookies: "Import Cookies",
+    clear_all_cookies: "Clear All Cookies",
+    export_all_cookies: "Export All Cookies",
+    export_all_warning: "Warning: Exporting all cookies is a security risk and may lead to account leakage. Please proceed with caution.",
+    current_cookies: "Current Cookies",
+    search_cookies_placeholder: "Search cookies...",
+    clear_search_btn: "×",
+    loading_cookies: "Loading cookies...",
+    no_cookies_found: "No cookies found for this site",
+    no_matching_cookies: "No matching cookies found",
+    edit: "Edit",
+    matches_current_site: "Matches current site",
+    all_subdomains: "All Subdomains",
+    includes_cookies_from_subdomains: "Includes cookies from subdomains",
+    ip_info: "IP Information",
+    loading_ip_info: "Loading IP information...",
+    risk_assessment: "Risk Assessment",
+    loading_risk_assessment: "Loading risk assessment...",
+    night_mode: "Night Mode",
+    enable_night_mode: "Enable Night Mode",
+    brightness: "Brightness",
+    contrast: "Contrast",
+    edit_cookie: "Edit Cookie",
+    cookie_name: "Name",
+    cookie_value: "Value",
+    cookie_domain: "Domain",
+    cookie_path: "Path",
+    cookie_expiration: "Expiration",
+    cookie_same_site: "Same Site",
+    no_restriction: "No Restriction",
+    lax: "Lax",
+    strict: "Strict",
+    host_only: "Host Only",
+    session: "Session",
+    secure: "Secure",
+    http_only: "Http Only",
+    save: "Save",
+    cancel: "Cancel",
+    clear_all_cookies_modal: "Clear All Cookies",
+    clear_all_cookies_confirm: "Are you sure you want to clear all cookies for <span id=\"clear-domain\" class=\"highlight-text\"></span>?",
+    cookies_to_be_removed: "The following cookies will be removed:",
+    include_all_subdomains_modal: "Include all subdomains",
+    clear_all: "Clear All"
+  }
+};
+
+function getUserLang() {
+  return localStorage.getItem('switchcookies_lang') || (navigator.language === 'zh-CN' ? 'zh-CN' : 'en-US');
+}
+
+function setUserLang(lang) {
+  localStorage.setItem('switchcookies_lang', lang);
+}
+
+function applyI18n(lang) {
+  const dict = LANGUAGES[lang] || LANGUAGES['en-US'];
+  // 普通文本
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+        el.value = dict[key];
+      } else if (el.tagName === 'P' || el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'LABEL' || el.tagName === 'BUTTON' || el.tagName === 'SPAN' || el.tagName === 'DIV') {
+        // 特殊处理带HTML的内容
+        if (dict[key].includes('<span')) {
+          el.innerHTML = dict[key];
+        } else {
+          el.textContent = dict[key];
+        }
+      }
+    }
+  });
+  // placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key]) {
+      el.setAttribute('placeholder', dict[key]);
+    }
+  });
+  // select下拉选项
+  document.querySelectorAll('option[data-i18n]').forEach(opt => {
+    const key = opt.getAttribute('data-i18n');
+    if (dict[key]) {
+      opt.textContent = dict[key];
+    }
+  });
+}
+
+// 语言切换按钮逻辑
+document.addEventListener('DOMContentLoaded', function() {
+  const langBtn = document.getElementById('lang-switch-btn');
+  const langSelect = document.getElementById('lang-select');
+  if (langBtn && langSelect) {
+    // 初始化下拉框
+    const userLang = getUserLang();
+    langSelect.value = userLang;
+    applyI18n(userLang);
+
+    langBtn.addEventListener('click', () => {
+      langSelect.style.display = langSelect.style.display === 'none' ? 'inline-block' : 'none';
+    });
+    langSelect.addEventListener('change', () => {
+      setUserLang(langSelect.value);
+      applyI18n(langSelect.value);
+      langSelect.style.display = 'none';
+    });
+    // 点击页面其他地方关闭下拉
+    document.addEventListener('click', (e) => {
+      if (e.target !== langBtn && e.target !== langSelect) {
+        langSelect.style.display = 'none';
+      }
+    });
+  } else {
+    // 兜底：直接应用语言
+    applyI18n(getUserLang());
+  }
+});
 
 // Initialize the popup
 document.addEventListener('DOMContentLoaded', function() {
@@ -351,7 +536,7 @@ function extractRootDomain(hostname) {
 // Load cookies for the current site
 function loadCurrentCookies() {
   const cookiesList = document.getElementById('cookies-list');
-  cookiesList.innerHTML = 'Loading cookies...';
+  cookiesList.innerHTML = LANGUAGES[getUserLang()].loading_cookies;
 
   // Determine which domain to use for cookie retrieval
   let domainFilter;
@@ -366,7 +551,7 @@ function loadCurrentCookies() {
 
   chrome.cookies.getAll({ domain: domainFilter }, cookies => {
     if (cookies.length === 0) {
-      cookiesList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
+      cookiesList.innerHTML = '<div class="no-cookies">' + LANGUAGES[getUserLang()].no_cookies_found + '</div>';
       allCookies = []; // Clear stored cookies
       return;
     }
@@ -377,7 +562,7 @@ function loadCurrentCookies() {
       : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
 
     if (relevantCookies.length === 0) {
-      cookiesList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
+      cookiesList.innerHTML = '<div class="no-cookies">' + LANGUAGES[getUserLang()].no_cookies_found + '</div>';
       allCookies = []; // Clear stored cookies
       return;
     }
@@ -404,7 +589,7 @@ function displayCookies(cookiesToDisplay) {
   cookiesList.innerHTML = '';
 
   if (cookiesToDisplay.length === 0) {
-    cookiesList.innerHTML = '<div class="no-cookies">No matching cookies found</div>';
+    cookiesList.innerHTML = '<div class="no-cookies">' + LANGUAGES[getUserLang()].no_matching_cookies + '</div>';
     return;
   }
 
@@ -426,7 +611,7 @@ function displayCookies(cookiesToDisplay) {
     cookieActions.className = 'cookie-item-actions';
 
     const editButton = document.createElement('button');
-    editButton.textContent = 'Edit';
+    editButton.textContent = LANGUAGES[getUserLang()].edit;
     editButton.addEventListener('click', () => openCookieEditor(cookie));
 
     cookieActions.appendChild(editButton);
@@ -445,7 +630,7 @@ function loadProfiles() {
     const profiles = result.cookieProfiles || {};
 
     if (Object.keys(profiles).length === 0) {
-      profilesList.innerHTML = '<div class="no-profiles">No saved profiles</div>';
+      profilesList.innerHTML = '<div class="no-profiles">' + LANGUAGES[getUserLang()].no_saved_profiles + '</div>';
       return;
     }
 
@@ -491,8 +676,8 @@ function loadProfiles() {
       if (isMatching) {
         const matchingBadge = document.createElement('span');
         matchingBadge.className = 'matching-badge';
-        matchingBadge.title = 'Matches current site';
-        matchingBadge.textContent = 'Current Site';
+        matchingBadge.title = LANGUAGES[getUserLang()].matches_current_site;
+        matchingBadge.textContent = LANGUAGES[getUserLang()].current_site;
         profileInfoDiv.appendChild(matchingBadge);
       }
 
@@ -500,8 +685,8 @@ function loadProfiles() {
       if (profile.includesSubdomains) {
         const subdomainBadge = document.createElement('span');
         subdomainBadge.className = 'subdomain-badge';
-        subdomainBadge.title = 'Includes cookies from subdomains';
-        subdomainBadge.textContent = 'All Subdomains';
+        subdomainBadge.title = LANGUAGES[getUserLang()].includes_cookies_from_subdomains;
+        subdomainBadge.textContent = LANGUAGES[getUserLang()].all_subdomains;
         profileInfoDiv.appendChild(subdomainBadge);
       }
 
