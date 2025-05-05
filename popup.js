@@ -4,6 +4,8 @@ let currentDomain = '';
 let currentTab = null;
 let currentEditingCookie = null;
 let includeSubdomains = true; // Default to true
+let allCookies = []; // Store all cookies for search functionality
+let searchTimeout = null; // For debouncing search input
 
 // Initialize the popup
 document.addEventListener('DOMContentLoaded', function() {
@@ -51,6 +53,26 @@ document.addEventListener('DOMContentLoaded', function() {
       // Reload cookies with the new setting
       loadCurrentCookies();
     });
+  });
+
+  // Set up cookie search functionality
+  const cookieSearch = document.getElementById('cookie-search');
+  const clearSearch = document.getElementById('clear-search');
+  const searchAutocomplete = document.getElementById('search-autocomplete');
+
+  // Hide clear button by default
+  clearSearch.style.display = 'none';
+
+  // Add event listeners for search input
+  cookieSearch.addEventListener('input', handleSearchInput);
+  cookieSearch.addEventListener('keydown', handleSearchKeydown);
+  clearSearch.addEventListener('click', clearSearchInput);
+
+  // Close autocomplete when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!cookieSearch.contains(e.target) && !searchAutocomplete.contains(e.target)) {
+      searchAutocomplete.style.display = 'none';
+    }
   });
 
   // Cookie editor modal event listeners
@@ -275,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 
     // 强制重绘所有可滚动元素
-    const scrollableElements = document.querySelectorAll('.profiles-list, .cookies-container, .modal-content, .cookies-list-confirm');
+    const scrollableElements = document.querySelectorAll('.profiles-list, .cookies-container, .modal-content, .cookies-list-confirm, .search-autocomplete');
     scrollableElements.forEach(el => {
       // 临时修改样式触发重绘
       const originalDisplay = el.style.display;
@@ -344,6 +366,7 @@ function loadCurrentCookies() {
   chrome.cookies.getAll({ domain: domainFilter }, cookies => {
     if (cookies.length === 0) {
       cookiesList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
+      allCookies = []; // Clear stored cookies
       return;
     }
 
@@ -354,37 +377,62 @@ function loadCurrentCookies() {
 
     if (relevantCookies.length === 0) {
       cookiesList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
+      allCookies = []; // Clear stored cookies
       return;
     }
 
-    cookiesList.innerHTML = '';
-    relevantCookies.forEach(cookie => {
-      const cookieItem = document.createElement('div');
-      cookieItem.className = 'cookie-item';
+    // Store cookies for search functionality
+    allCookies = relevantCookies;
 
-      const cookieText = document.createElement('div');
-      cookieText.className = 'cookie-item-text';
+    // Check if there's an active search
+    const searchInput = document.getElementById('cookie-search');
+    if (searchInput.value.trim()) {
+      // If there's a search term, filter cookies
+      filterCookies(searchInput.value.trim());
+      return;
+    }
 
-      // Show domain for subdomain cookies
-      const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
-        ? `[${cookie.domain}] `
-        : '';
+    // Otherwise display all cookies
+    displayCookies(relevantCookies);
+  });
+}
 
-      cookieText.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
+// Display cookies in the list
+function displayCookies(cookiesToDisplay) {
+  const cookiesList = document.getElementById('cookies-list');
+  cookiesList.innerHTML = '';
 
-      const cookieActions = document.createElement('div');
-      cookieActions.className = 'cookie-item-actions';
+  if (cookiesToDisplay.length === 0) {
+    cookiesList.innerHTML = '<div class="no-cookies">No matching cookies found</div>';
+    return;
+  }
 
-      const editButton = document.createElement('button');
-      editButton.textContent = 'Edit';
-      editButton.addEventListener('click', () => openCookieEditor(cookie));
+  cookiesToDisplay.forEach(cookie => {
+    const cookieItem = document.createElement('div');
+    cookieItem.className = 'cookie-item';
 
-      cookieActions.appendChild(editButton);
-      cookieItem.appendChild(cookieText);
-      cookieItem.appendChild(cookieActions);
+    const cookieText = document.createElement('div');
+    cookieText.className = 'cookie-item-text';
 
-      cookiesList.appendChild(cookieItem);
-    });
+    // Show domain for subdomain cookies
+    const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
+      ? `[${cookie.domain}] `
+      : '';
+
+    cookieText.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
+
+    const cookieActions = document.createElement('div');
+    cookieActions.className = 'cookie-item-actions';
+
+    const editButton = document.createElement('button');
+    editButton.textContent = 'Edit';
+    editButton.addEventListener('click', () => openCookieEditor(cookie));
+
+    cookieActions.appendChild(editButton);
+    cookieItem.appendChild(cookieText);
+    cookieItem.appendChild(cookieActions);
+
+    cookiesList.appendChild(cookieItem);
   });
 }
 
@@ -865,7 +913,19 @@ function saveCookieChanges() {
     chrome.cookies.set(newCookie, () => {
       alert('Cookie updated successfully!');
       closeCookieEditor();
+
+      // Reload cookies and maintain search if active
+      const searchInput = document.getElementById('cookie-search');
+      const searchTerm = searchInput.value.trim();
       loadCurrentCookies();
+
+      // Re-apply search if there was one
+      if (searchTerm) {
+        setTimeout(() => {
+          filterCookies(searchTerm);
+          showAutocomplete(searchTerm);
+        }, 100);
+      }
     });
   });
 }
@@ -989,10 +1049,247 @@ function clearAllCookies() {
     chrome.tabs.reload(currentTab.id, {}, () => {
       alert(`${relevantCookies.length} cookies cleared successfully! The page has been refreshed.`);
       closeClearCookiesModal();
+
+      // Save search term if any
+      const searchInput = document.getElementById('cookie-search');
+      const searchTerm = searchInput.value.trim();
+
       loadCurrentCookies();
       loadProfiles(); // Reload profiles to update matching status
+
+      // Re-apply search if there was one
+      if (searchTerm) {
+        setTimeout(() => {
+          filterCookies(searchTerm);
+          showAutocomplete(searchTerm);
+        }, 100);
+      }
     });
   });
+}
+
+// Handle search input
+function handleSearchInput(e) {
+  const searchTerm = e.target.value.trim();
+
+  // Clear any existing timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+
+  // Show/hide clear button based on input
+  document.getElementById('clear-search').style.display = searchTerm ? 'flex' : 'none';
+
+  // Debounce the search to avoid excessive filtering
+  searchTimeout = setTimeout(() => {
+    if (searchTerm) {
+      // Filter cookies and show autocomplete
+      filterCookies(searchTerm);
+      showAutocomplete(searchTerm);
+    } else {
+      // If search is cleared, show all cookies and hide autocomplete
+      displayCookies(allCookies);
+      document.getElementById('search-autocomplete').style.display = 'none';
+    }
+  }, 300);
+}
+
+// Handle keyboard navigation in search
+function handleSearchKeydown(e) {
+  const autocomplete = document.getElementById('search-autocomplete');
+
+  // Only process if autocomplete is visible
+  if (autocomplete.style.display !== 'block') return;
+
+  const items = autocomplete.querySelectorAll('.autocomplete-item');
+  const selectedItem = autocomplete.querySelector('.selected');
+  let selectedIndex = -1;
+
+  // Find the currently selected item index
+  if (selectedItem) {
+    for (let i = 0; i < items.length; i++) {
+      if (items[i] === selectedItem) {
+        selectedIndex = i;
+        break;
+      }
+    }
+  }
+
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      // Select next item or first if none selected
+      if (selectedIndex < items.length - 1) {
+        if (selectedItem) selectedItem.classList.remove('selected');
+        items[selectedIndex + 1].classList.add('selected');
+        ensureVisible(items[selectedIndex + 1], autocomplete);
+      } else if (items.length > 0 && selectedIndex === -1) {
+        items[0].classList.add('selected');
+        ensureVisible(items[0], autocomplete);
+      }
+      break;
+
+    case 'ArrowUp':
+      e.preventDefault();
+      // Select previous item or last if none selected
+      if (selectedIndex > 0) {
+        if (selectedItem) selectedItem.classList.remove('selected');
+        items[selectedIndex - 1].classList.add('selected');
+        ensureVisible(items[selectedIndex - 1], autocomplete);
+      } else if (items.length > 0 && selectedIndex === -1) {
+        items[items.length - 1].classList.add('selected');
+        ensureVisible(items[items.length - 1], autocomplete);
+      }
+      break;
+
+    case 'Enter':
+      // Apply the selected suggestion
+      if (selectedItem) {
+        e.preventDefault();
+        const cookieName = selectedItem.getAttribute('data-name');
+        document.getElementById('cookie-search').value = cookieName;
+        filterCookies(cookieName);
+        autocomplete.style.display = 'none';
+      }
+      break;
+
+    case 'Escape':
+      // Hide autocomplete
+      autocomplete.style.display = 'none';
+      break;
+  }
+}
+
+// Ensure the selected item is visible in the scrollable container
+function ensureVisible(element, container) {
+  const containerTop = container.scrollTop;
+  const containerBottom = containerTop + container.clientHeight;
+  const elementTop = element.offsetTop;
+  const elementBottom = elementTop + element.clientHeight;
+
+  if (elementTop < containerTop) {
+    container.scrollTop = elementTop;
+  } else if (elementBottom > containerBottom) {
+    container.scrollTop = elementBottom - container.clientHeight;
+  }
+}
+
+// Clear search input
+function clearSearchInput() {
+  const searchInput = document.getElementById('cookie-search');
+  searchInput.value = '';
+  document.getElementById('clear-search').style.display = 'none';
+  document.getElementById('search-autocomplete').style.display = 'none';
+  displayCookies(allCookies);
+  searchInput.focus();
+}
+
+// Filter cookies based on search term
+function filterCookies(searchTerm) {
+  if (!searchTerm) {
+    displayCookies(allCookies);
+    return;
+  }
+
+  // Convert search term to lowercase for case-insensitive matching
+  const term = searchTerm.toLowerCase();
+
+  // Filter cookies that match the search term
+  const filteredCookies = allCookies.filter(cookie => {
+    // Check cookie name
+    if (cookie.name.toLowerCase().includes(term)) return true;
+
+    // Check cookie domain
+    if (cookie.domain.toLowerCase().includes(term)) return true;
+
+    // Check cookie value (partial match)
+    if (cookie.value.toLowerCase().includes(term)) return true;
+
+    return false;
+  });
+
+  // Display filtered cookies
+  displayCookies(filteredCookies);
+}
+
+// Show autocomplete suggestions
+function showAutocomplete(searchTerm) {
+  const autocomplete = document.getElementById('search-autocomplete');
+
+  if (!searchTerm) {
+    autocomplete.style.display = 'none';
+    return;
+  }
+
+  // Get unique cookie names for autocomplete
+  const term = searchTerm.toLowerCase();
+  const suggestions = [];
+  const addedNames = new Set();
+
+  // Find matching cookie names
+  allCookies.forEach(cookie => {
+    if (cookie.name.toLowerCase().includes(term) && !addedNames.has(cookie.name)) {
+      suggestions.push(cookie.name);
+      addedNames.add(cookie.name);
+    }
+  });
+
+  // Sort suggestions by relevance (exact match first, then startsWith, then includes)
+  suggestions.sort((a, b) => {
+    const aLower = a.toLowerCase();
+    const bLower = b.toLowerCase();
+
+    // Exact match gets highest priority
+    if (aLower === term && bLower !== term) return -1;
+    if (bLower === term && aLower !== term) return 1;
+
+    // Then startsWith
+    if (aLower.startsWith(term) && !bLower.startsWith(term)) return -1;
+    if (bLower.startsWith(term) && !aLower.startsWith(term)) return 1;
+
+    // Then alphabetical
+    return a.localeCompare(b);
+  });
+
+  // Limit to top 10 suggestions
+  const topSuggestions = suggestions.slice(0, 10);
+
+  // Display suggestions
+  if (topSuggestions.length > 0) {
+    autocomplete.innerHTML = '';
+
+    topSuggestions.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.setAttribute('data-name', name);
+
+      // Highlight the matching part
+      const index = name.toLowerCase().indexOf(term);
+      if (index >= 0) {
+        const before = name.substring(0, index);
+        const match = name.substring(index, index + term.length);
+        const after = name.substring(index + term.length);
+        item.innerHTML = `${before}<span class="highlight">${match}</span>${after}`;
+      } else {
+        item.textContent = name;
+      }
+
+      // Add click event to apply the suggestion
+      item.addEventListener('click', () => {
+        document.getElementById('cookie-search').value = name;
+        filterCookies(name);
+        autocomplete.style.display = 'none';
+      });
+
+      autocomplete.appendChild(item);
+    });
+
+    autocomplete.style.display = 'block';
+  } else {
+    // Show "no results" message
+    autocomplete.innerHTML = '<div class="no-results">No matching cookies found</div>';
+    autocomplete.style.display = 'block';
+  }
 }
 
 // Load IP information and risk assessment

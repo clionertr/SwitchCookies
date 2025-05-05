@@ -103,6 +103,13 @@
 
     <div class="section">
       <h2>Current Cookies</h2>
+      <div class="cookie-search-container">
+        <div class="search-input-wrapper">
+          <input type="text" id="cookie-search" placeholder="Search cookies..." autocomplete="off">
+          <button id="clear-search" class="clear-search-btn" title="Clear search">×</button>
+        </div>
+        <div id="search-autocomplete" class="search-autocomplete"></div>
+      </div>
       <div class="cookies-container">
         <div id="cookies-list" class="cookies-list">Loading cookies...</div>
       </div>

@@ -146,6 +146,90 @@ input[type="text"] {
   display: flex;
 }
 
+/* Cookie search styles */
+.cookie-search-container {
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+#cookie-search {
+  width: 100%;
+  padding: 8px 30px 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.clear-search-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.search-autocomplete {
+  position: absolute;
+  width: 100%;
+  max-height: 150px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 10;
+  display: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.autocomplete-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.autocomplete-item:hover, .autocomplete-item.selected {
+  background-color: #f0f7ff;
+}
+
+.highlight {
+  background-color: #ffeb3b;
+  font-weight: bold;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.no-results {
+  padding: 8px 10px;
+  color: #999;
+  font-style: italic;
+  text-align: center;
+}
+
 .cookies-container {
   max-height: 200px;
   overflow-y: auto;
@@ -386,10 +470,30 @@ body.night-mode {
 }
 
 .night-mode .cookies-container,
-.night-mode .cookies-list-confirm {
+.night-mode .cookies-list-confirm,
+.night-mode .search-autocomplete {
   background-color: #333;
   border: 1px solid #444;
   border-left: 1px solid #444; /* 确保左侧边框颜色一致 */
+}
+
+.night-mode .clear-search-btn {
+  color: #aaa;
+}
+
+.night-mode .clear-search-btn:hover {
+  background-color: #444;
+  color: #e0e0e0;
+}
+
+.night-mode .autocomplete-item:hover,
+.night-mode .autocomplete-item.selected {
+  background-color: #1e3a5f;
+}
+
+.night-mode .highlight {
+  background-color: #4dabf7;
+  color: #000;
 }
 
 .night-mode .cookie-item,
