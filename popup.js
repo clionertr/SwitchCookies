@@ -16,6 +16,8 @@ const LANGUAGES = {
     profile_name_placeholder: "配置名称",
     save_current_cookies: "保存当前Cookies",
     no_saved_profiles: "暂无已保存配置",
+    export_all_profiles: "导出全部配置",
+    export_all_profiles_warning: "导出全部Cookie配置，可用于备份或迁移到其他设备。",
     cookie_management: "Cookie 管理",
     include_all_subdomains: "包含所有子域名（如：www.example.com 和 login.example.com）",
     export_cookies: "导出Cookies",
@@ -76,6 +78,8 @@ const LANGUAGES = {
     profile_name_placeholder: "Profile name",
     save_current_cookies: "Save Current Cookies",
     no_saved_profiles: "No saved profiles",
+    export_all_profiles: "Export All Profiles",
+    export_all_profiles_warning: "Export all cookie profiles for backup or migration to another device.",
     cookie_management: "Cookie Management",
     include_all_subdomains: "Include all subdomains (e.g., www.example.com and login.example.com)",
     export_cookies: "Export Cookies",
@@ -223,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Set up event listeners
   document.getElementById('save-profile').addEventListener('click', saveCurrentProfile);
+  document.getElementById('export-all-profiles').addEventListener('click', exportAllProfiles);
   document.getElementById('export-cookies').addEventListener('click', exportCookies);
   document.getElementById('export-all-cookies').addEventListener('click', exportAllCookies);
   document.getElementById('import-cookies').addEventListener('click', () => {
@@ -935,6 +940,35 @@ function exportCookies() {
   });
 }
 
+// Export ALL cookie profiles
+function exportAllProfiles() {
+  chrome.storage.local.get('cookieProfiles', result => {
+    const profiles = result.cookieProfiles || {};
+
+    if (Object.keys(profiles).length === 0) {
+      alert(LANGUAGES[getUserLang()].no_saved_profiles);
+      return;
+    }
+
+    const profilesData = {
+      type: 'cookie_profiles',
+      profiles: profiles,
+      totalProfiles: Object.keys(profiles).length,
+      exportedAt: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(profilesData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+    const exportFileDefaultName = `cookie-profiles-${new Date().toISOString().slice(0, 10)}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  });
+}
+
 // Export ALL cookies from the browser
 function exportAllCookies() {
   // Show a confirmation dialog with security warning
@@ -990,16 +1024,35 @@ function importCookies(event) {
 
   reader.onload = function(e) {
     try {
-      const cookiesData = JSON.parse(e.target.result);
+      const importedData = JSON.parse(e.target.result);
+
+      // Check if this is a cookie profiles export file
+      if (importedData.type === 'cookie_profiles' && importedData.profiles) {
+        // Import cookie profiles
+        chrome.storage.local.get('cookieProfiles', result => {
+          const existingProfiles = result.cookieProfiles || {};
+          const newProfiles = importedData.profiles;
+
+          // Merge profiles, new profiles will overwrite existing ones with the same name
+          const mergedProfiles = { ...existingProfiles, ...newProfiles };
+
+          chrome.storage.local.set({ cookieProfiles: mergedProfiles }, () => {
+            const newProfilesCount = Object.keys(newProfiles).length;
+            alert(`${newProfilesCount} cookie profiles have been imported successfully!`);
+            loadProfiles();
+          });
+        });
+        return;
+      }
 
       // 兼容全部导出格式
-      if (cookiesData.allDomains && cookiesData.cookiesByDomain) {
+      if (importedData.allDomains && importedData.cookiesByDomain) {
         // 多域名批量导入
-        const domains = Object.keys(cookiesData.cookiesByDomain);
+        const domains = Object.keys(importedData.cookiesByDomain);
         let importedCount = 0;
         let totalCookies = 0;
         domains.forEach(domain => {
-          const cookiesArr = cookiesData.cookiesByDomain[domain];
+          const cookiesArr = importedData.cookiesByDomain[domain];
           totalCookies += cookiesArr.length;
           cookiesArr.forEach(cookie => {
             const url = (cookie.secure ? "https://" : "http://") +
@@ -1033,12 +1086,12 @@ function importCookies(event) {
       }
 
       // 单域名导入（原有逻辑）
-      if (!cookiesData.domain || !Array.isArray(cookiesData.cookies)) {
+      if (!importedData.domain || !Array.isArray(importedData.cookies)) {
         throw new Error('Invalid cookies file format');
       }
 
-      if (cookiesData.domain !== currentDomain) {
-        if (!confirm(`This cookies file was exported from ${cookiesData.domain}, but you're currently on ${currentDomain}. Import anyway?`)) {
+      if (importedData.domain !== currentDomain) {
+        if (!confirm(`This cookies file was exported from ${importedData.domain}, but you're currently on ${currentDomain}. Import anyway?`)) {
           return;
         }
       }
@@ -1057,7 +1110,7 @@ function importCookies(event) {
         });
 
         // Then set the new cookies
-        cookiesData.cookies.forEach(cookie => {
+        importedData.cookies.forEach(cookie => {
           const url = (cookie.secure ? "https://" : "http://") +
                       (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
                       cookie.path;
@@ -1653,9 +1706,8 @@ function centerModalInViewport(modal) {
   // 获取当前滚动位置
   const scrollTop = window.scrollY || document.documentElement.scrollTop;
 
-  // 获取视口高度和宽度
+  // 获取视口高度
   const viewportHeight = window.innerHeight;
-  const viewportWidth = window.innerWidth;
 
   // 重置之前的样式以便获取自然高度
   modalContent.style.top = '';
