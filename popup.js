@@ -20,7 +20,7 @@ const LANGUAGES = {
     include_all_subdomains: "包含所有子域名（如：www.example.com 和 login.example.com）",
     export_cookies: "导出Cookies",
     import_cookies: "导入Cookies",
-    clear_all_cookies: "清除所有Cookies",
+    clear_all_cookies: "清除当前网站及其所有子域名的Cookies",
     export_all_cookies: "导出全部Cookies",
     export_all_warning: "警告：导出全部Cookies存在安全风险，可能导致账户泄露，请谨慎操作。",
     current_cookies: "当前Cookies",
@@ -57,11 +57,16 @@ const LANGUAGES = {
     http_only: "Http Only",
     save: "保存",
     cancel: "取消",
-    clear_all_cookies_modal: "清除所有Cookies",
-    clear_all_cookies_confirm: "确定要清除 <span id=\"clear-domain\" class=\"highlight-text\"></span> 的所有Cookies吗？",
+    clear_all_cookies_modal: "清除当前网站及其所有子域名的Cookies",
+    clear_all_cookies_confirm: "确定要清除 <span id=\"clear-domain\" class=\"highlight-text\"></span> 及其所有子域名的Cookies吗？",
     cookies_to_be_removed: "以下Cookies将被移除：",
-    include_all_subdomains_modal: "包含所有子域名",
-    clear_all: "全部清除"
+    include_all_subdomains_modal: "包含所有子域名（推荐）",
+    clear_all: "全部清除",
+    only_current_site: "仅当前网站",
+    clear_only_current_site: "清除当前网站Cookies",
+    clear_only_current_site_modal: "清除当前网站Cookies",
+    clear_only_current_site_confirm: "确定要清除 <span id=\"clear-domain\" class=\"highlight-text\"></span> 的Cookies吗？",
+    clear_only: "仅清除当前网站",
   },
   "en-US": {
     title: "SwitchCookies",
@@ -75,7 +80,7 @@ const LANGUAGES = {
     include_all_subdomains: "Include all subdomains (e.g., www.example.com and login.example.com)",
     export_cookies: "Export Cookies",
     import_cookies: "Import Cookies",
-    clear_all_cookies: "Clear All Cookies",
+    clear_all_cookies: "Clear cookies for this site and all its subdomains",
     export_all_cookies: "Export All Cookies",
     export_all_warning: "Warning: Exporting all cookies is a security risk and may lead to account leakage. Please proceed with caution.",
     current_cookies: "Current Cookies",
@@ -112,11 +117,16 @@ const LANGUAGES = {
     http_only: "Http Only",
     save: "Save",
     cancel: "Cancel",
-    clear_all_cookies_modal: "Clear All Cookies",
-    clear_all_cookies_confirm: "Are you sure you want to clear all cookies for <span id=\"clear-domain\" class=\"highlight-text\"></span>?",
+    clear_all_cookies_modal: "Clear cookies for this site and all its subdomains",
+    clear_all_cookies_confirm: "Are you sure you want to clear cookies for <span id=\"clear-domain\" class=\"highlight-text\"></span> and all its subdomains?",
     cookies_to_be_removed: "The following cookies will be removed:",
-    include_all_subdomains_modal: "Include all subdomains",
-    clear_all: "Clear All"
+    include_all_subdomains_modal: "Include all subdomains (recommended)",
+    clear_all: "Clear All",
+    only_current_site: "Only current site",
+    clear_only_current_site: "Clear cookies for this site only",
+    clear_only_current_site_modal: "Clear cookies for this site only",
+    clear_only_current_site_confirm: "Are you sure you want to clear cookies for <span id=\"clear-domain\" class=\"highlight-text\"></span> only?",
+    clear_only: "Clear only current site",
   }
 };
 
@@ -982,6 +992,47 @@ function importCookies(event) {
     try {
       const cookiesData = JSON.parse(e.target.result);
 
+      // 兼容全部导出格式
+      if (cookiesData.allDomains && cookiesData.cookiesByDomain) {
+        // 多域名批量导入
+        const domains = Object.keys(cookiesData.cookiesByDomain);
+        let importedCount = 0;
+        let totalCookies = 0;
+        domains.forEach(domain => {
+          const cookiesArr = cookiesData.cookiesByDomain[domain];
+          totalCookies += cookiesArr.length;
+          cookiesArr.forEach(cookie => {
+            const url = (cookie.secure ? "https://" : "http://") +
+                        (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
+                        cookie.path;
+            const newCookie = {
+              url: url,
+              name: cookie.name,
+              value: cookie.value,
+              domain: cookie.domain,
+              path: cookie.path,
+              secure: cookie.secure,
+              httpOnly: cookie.httpOnly,
+              sameSite: cookie.sameSite
+            };
+            if (cookie.expirationDate) {
+              newCookie.expirationDate = cookie.expirationDate;
+            }
+            chrome.cookies.set(newCookie, () => {
+              importedCount++;
+              // 导入完成后提示
+              if (importedCount === totalCookies) {
+                alert('全部Cookies已导入，建议刷新相关页面。\\nAll cookies have been imported. Please refresh related pages.');
+                loadCurrentCookies();
+                loadProfiles();
+              }
+            });
+          });
+        });
+        return;
+      }
+
+      // 单域名导入（原有逻辑）
       if (!cookiesData.domain || !Array.isArray(cookiesData.cookies)) {
         throw new Error('Invalid cookies file format');
       }
@@ -1165,64 +1216,76 @@ function showClearCookiesConfirmation() {
   clearDomainSpan.textContent = currentDomain;
 
   const cookiesToClearList = document.getElementById('cookies-to-clear-list');
-  cookiesToClearList.innerHTML = 'Loading cookies...';
-
-  // Determine which domain to use for cookie retrieval
-  let domainFilter;
   const clearSubdomainsCheckbox = document.getElementById('clear-subdomains');
+  const modal = document.getElementById('clear-cookies-modal');
+  const modalTitle = modal.querySelector('h2');
+  const confirmText = modal.querySelector('p[data-i18n]');
+  const confirmBtn = document.getElementById('confirm-clear-btn');
 
-  // Load saved preference for clearing subdomains
+  // 获取当前语言包
+  function getLangPack() {
+    const lang = localStorage.getItem('lang') || 'zh-CN';
+    return LANGUAGES[lang] || LANGUAGES['zh-CN'];
+  }
+
+  // 动态切换弹窗文案
+  function updateClearModalTexts() {
+    const langPack = getLangPack();
+    if (clearSubdomainsCheckbox.checked) {
+      modalTitle.textContent = langPack.clear_all_cookies_modal;
+      confirmText.innerHTML = langPack.clear_all_cookies_confirm;
+      confirmBtn.textContent = langPack.clear_all;
+    } else {
+      modalTitle.textContent = langPack.clear_only_current_site_modal;
+      confirmText.innerHTML = langPack.clear_only_current_site_confirm;
+      confirmBtn.textContent = langPack.clear_only;
+    }
+  }
+
+  // 动态加载 cookies 列表
+  function updateCookiesList() {
+    cookiesToClearList.innerHTML = 'Loading cookies...';
+    let filterDomain = clearSubdomainsCheckbox.checked ? extractRootDomain(currentDomain) : currentDomain;
+    chrome.cookies.getAll({ domain: filterDomain }, cookies => {
+      let relevantCookies = clearSubdomainsCheckbox.checked
+        ? cookies
+        : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
+
+      if (relevantCookies.length === 0) {
+        cookiesToClearList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
+      } else {
+        cookiesToClearList.innerHTML = '';
+        relevantCookies.forEach(cookie => {
+          const cookieItem = document.createElement('div');
+          cookieItem.className = 'cookie-item-confirm';
+          // Show domain for subdomain cookies
+          const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
+            ? `[${cookie.domain}] `
+            : '';
+          cookieItem.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
+          cookiesToClearList.appendChild(cookieItem);
+        });
+      }
+    });
+  }
+
+  // 绑定复选框事件
+  clearSubdomainsCheckbox.onchange = function() {
+    updateClearModalTexts();
+    updateCookiesList();
+  };
+
+  // 加载本地存储的复选框状态
   chrome.storage.local.get('includeSubdomains', result => {
     if (result.includeSubdomains !== undefined) {
       clearSubdomainsCheckbox.checked = result.includeSubdomains;
     }
+    updateClearModalTexts();
+    updateCookiesList();
   });
 
-  if (clearSubdomainsCheckbox.checked) {
-    // Get the root domain to include all subdomains
-    const rootDomain = extractRootDomain(currentDomain);
-    domainFilter = rootDomain;
-  } else {
-    // Use the exact current domain
-    domainFilter = currentDomain;
-  }
-
-  chrome.cookies.getAll({ domain: domainFilter }, cookies => {
-    // Filter cookies to only show those relevant to the current domain or its subdomains
-    const relevantCookies = clearSubdomainsCheckbox.checked
-      ? cookies
-      : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
-
-    if (relevantCookies.length === 0) {
-      cookiesToClearList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
-    } else {
-      cookiesToClearList.innerHTML = '';
-      relevantCookies.forEach(cookie => {
-        const cookieItem = document.createElement('div');
-        cookieItem.className = 'cookie-item-confirm';
-
-        // Show domain for subdomain cookies
-        const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
-          ? `[${cookie.domain}] `
-          : '';
-
-        cookieItem.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
-        cookiesToClearList.appendChild(cookieItem);
-      });
-    }
-  });
-
-  // Add event listener for the checkbox
-  clearSubdomainsCheckbox.onchange = function() {
-    // Reload the list with the new setting
-    showClearCookiesConfirmation();
-  };
-
-  // Show the modal
-  const modal = document.getElementById('clear-cookies-modal');
+  // 显示弹窗并居中
   modal.style.display = 'block';
-
-  // Center the modal in the viewport
   centerModalInViewport(modal);
 }
 

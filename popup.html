@@ -106,7 +106,7 @@
       <div class="button-group">
         <button id="export-cookies" data-i18n="export_cookies">Export Cookies</button>
         <button id="import-cookies" data-i18n="import_cookies">Import Cookies</button>
-        <button id="clear-cookies" class="danger-btn" data-i18n="clear_all_cookies">Clear All Cookies</button>
+        <button id="clear-cookies" class="danger-btn" data-i18n="clear_all_cookies">Clear cookies for this site and all its subdomains</button>
         <input type="file" id="import-file" style="display: none;">
       </div>
       <div class="export-all-container">
@@ -219,15 +219,15 @@
   <div id="clear-cookies-modal" class="modal">
     <div class="modal-content">
       <span class="close clear-cookies-close">&times;</span>
-      <h2 data-i18n="clear_all_cookies_modal">Clear All Cookies</h2>
-      <p data-i18n="clear_all_cookies_confirm">Are you sure you want to clear all cookies for <span id="clear-domain" class="highlight-text"></span>?</p>
+      <h2 data-i18n="clear_all_cookies_modal">Clear cookies for this site and all its subdomains</h2>
+      <p data-i18n="clear_all_cookies_confirm">Are you sure you want to clear cookies for <span id="clear-domain" class="highlight-text"></span> and all its subdomains?</p>
       <div class="cookies-to-clear">
         <h3 data-i18n="cookies_to_be_removed">The following cookies will be removed:</h3>
         <div id="cookies-to-clear-list" class="cookies-list-confirm"></div>
       </div>
       <div class="checkbox-item clear-subdomains">
         <input type="checkbox" id="clear-subdomains" checked>
-        <label for="clear-subdomains" data-i18n="include_all_subdomains_modal">Include all subdomains</label>
+        <label for="clear-subdomains" data-i18n="include_all_subdomains_modal">Include all subdomains (recommended)</label>
       </div>
       <div class="form-actions">
         <button id="confirm-clear-btn" class="danger-btn" data-i18n="clear_all">Clear All</button>
