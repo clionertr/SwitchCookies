@@ -409,6 +409,149 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     });
+// ===== WebDAV UI 初始化与事件绑定 =====
+  loadWebDAVConfig();
+  document.getElementById('webdav-save').addEventListener('click', saveWebDAVConfig);
+  document.getElementById('webdav-upload').addEventListener('click', handleWebDAVUpload);
+  document.getElementById('webdav-download').addEventListener('click', handleWebDAVDownload);
+// ===== WebDAV 支持 =====
+
+// 读取 WebDAV 配置并填充表单
+function loadWebDAVConfig() {
+  chrome.storage.local.get('webdavConfig', (result) => {
+    const config = result.webdavConfig || {};
+    document.getElementById('webdav-url').value = config.url || '';
+    document.getElementById('webdav-username').value = config.username || '';
+    document.getElementById('webdav-password').value = config.password || '';
+  });
+}
+
+// 保存 WebDAV 配置
+function saveWebDAVConfig() {
+  const url = document.getElementById('webdav-url').value.trim();
+  const username = document.getElementById('webdav-username').value.trim();
+  const password = document.getElementById('webdav-password').value;
+  if (!url) {
+    setWebDAVStatus('请输入 WebDAV 服务器地址', true);
+    return;
+  }
+  chrome.storage.local.set({ webdavConfig: { url, username, password } }, () => {
+    setWebDAVStatus('WebDAV 配置已保存', false);
+  });
+}
+
+// 设置 WebDAV 状态/错误提示
+function setWebDAVStatus(msg, isError) {
+  const statusEl = document.getElementById('webdav-status');
+  statusEl.textContent = msg;
+  statusEl.style.color = isError ? '#d9534f' : '#28a745';
+  setTimeout(() => { statusEl.textContent = ''; }, 4000);
+}
+
+/**
+ * WebDAV 上传所有 cookie 配置文件
+ */
+async function handleWebDAVUpload() {
+  setWebDAVStatus('正在准备上传...', false);
+  // 读取配置
+  chrome.storage.local.get('webdavConfig', (cfgResult) => {
+    const config = cfgResult.webdavConfig || {};
+    const url = (config.url || '').replace(/\/+$/, '');
+    const username = config.username || '';
+    const password = config.password || '';
+    if (!url) {
+      setWebDAVStatus('请先填写 WebDAV 服务器地址', true);
+      return;
+    }
+    // 读取所有 cookieProfiles
+    chrome.storage.local.get('cookieProfiles', (result) => {
+      const profiles = result.cookieProfiles || {};
+      if (Object.keys(profiles).length === 0) {
+        setWebDAVStatus('没有可上传的 Cookie 配置', true);
+        return;
+      }
+      const profilesData = {
+        type: 'cookie_profiles',
+        profiles: profiles,
+        totalProfiles: Object.keys(profiles).length,
+        exportedAt: new Date().toISOString()
+      };
+      const dataStr = JSON.stringify(profilesData, null, 2);
+      const fileName = 'switchcookies-profiles.json';
+      // WebDAV PUT
+      fetch(url + '/' + fileName, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Basic ' + btoa(username + ':' + password),
+          'Content-Type': 'application/json'
+        },
+        body: dataStr
+      }).then(async (resp) => {
+        if (resp.ok) {
+          setWebDAVStatus('上传成功', false);
+        } else if (resp.status === 401 || resp.status === 403) {
+          setWebDAVStatus('认证失败，请检查用户名和密码', true);
+        } else {
+          const text = await resp.text();
+          setWebDAVStatus('上传失败: ' + resp.status + ' ' + text, true);
+        }
+      }).catch((err) => {
+        setWebDAVStatus('网络错误: ' + err.message, true);
+      });
+    });
+  });
+}
+
+/**
+ * WebDAV 下载 cookie 配置文件并导入
+ */
+async function handleWebDAVDownload() {
+  setWebDAVStatus('正在从服务器下载...', false);
+  chrome.storage.local.get('webdavConfig', (cfgResult) => {
+    const config = cfgResult.webdavConfig || {};
+    const url = (config.url || '').replace(/\/+$/, '');
+    const username = config.username || '';
+    const password = config.password || '';
+    if (!url) {
+      setWebDAVStatus('请先填写 WebDAV 服务器地址', true);
+      return;
+    }
+    const fileName = 'switchcookies-profiles.json';
+    fetch(url + '/' + fileName, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Basic ' + btoa(username + ':' + password)
+      }
+    }).then(async (resp) => {
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json.type === 'cookie_profiles' && json.profiles) {
+          // 合并导入
+          chrome.storage.local.get('cookieProfiles', result => {
+            const existingProfiles = result.cookieProfiles || {};
+            const newProfiles = json.profiles;
+            const mergedProfiles = { ...existingProfiles, ...newProfiles };
+            chrome.storage.local.set({ cookieProfiles: mergedProfiles }, () => {
+              setWebDAVStatus('导入成功，共导入 ' + Object.keys(newProfiles).length + ' 个配置', false);
+              loadProfiles();
+            });
+          });
+        } else {
+          setWebDAVStatus('文件格式错误，无法导入', true);
+        }
+      } else if (resp.status === 401 || resp.status === 403) {
+        setWebDAVStatus('认证失败，请检查用户名和密码', true);
+      } else if (resp.status === 404) {
+        setWebDAVStatus('服务器上未找到配置文件', true);
+      } else {
+        const text = await resp.text();
+        setWebDAVStatus('下载失败: ' + resp.status + ' ' + text, true);
+      }
+    }).catch((err) => {
+      setWebDAVStatus('网络错误: ' + err.message, true);
+    });
+  });
+}
   }
 
   // 更新快速切换按钮图标

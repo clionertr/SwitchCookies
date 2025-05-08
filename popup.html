@@ -146,7 +146,32 @@
       <h2 data-i18n="risk_assessment">Risk Assessment</h2>
       <div id="risk-assessment" data-i18n="loading_risk_assessment">Loading risk assessment...</div>
     </div>
-<div class="section">
+  <!-- WebDAV 支持 Section -->
+  <div class="section" id="webdav-section">
+    <h2>WebDAV</h2>
+    <div class="form-group">
+      <label for="webdav-url" data-i18n="webdav_url">WebDAV 服务器地址</label>
+      <input type="text" id="webdav-url" placeholder="https://example.com/webdav/">
+    </div>
+    <div class="form-group">
+      <label for="webdav-username" data-i18n="webdav_username">用户名</label>
+      <input type="text" id="webdav-username" placeholder="用户名">
+    </div>
+    <div class="form-group">
+      <label for="webdav-password" data-i18n="webdav_password">密码</label>
+      <input type="password" id="webdav-password" placeholder="密码">
+    </div>
+    <div class="form-actions" style="margin-bottom: 8px;">
+      <button id="webdav-save" data-i18n="webdav_save_config">保存配置</button>
+    </div>
+    <div class="form-actions" style="gap: 8px;">
+      <button id="webdav-upload" data-i18n="webdav_upload">上传 Cookies 配置</button>
+      <button id="webdav-download" data-i18n="webdav_download">从 WebDAV 导入</button>
+    </div>
+    <div id="webdav-status" class="status-message" style="margin-top: 8px; color: #d9534f;"></div>
+  </div>
+  <!-- 夜间模式 Section -->
+  <div class="section">
     <h2 data-i18n="night_mode">夜间模式</h2>
     <div class="checkbox-item">
       <input type="checkbox" id="night-mode-toggle">

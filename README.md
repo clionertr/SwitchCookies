@@ -86,6 +86,40 @@ SwitchCookies is a Chrome extension designed to help users manage cookie setting
 - **Night Mode**: Toggle night mode and adjust brightness/contrast in the Night Mode section
 - **Language**: Switch between English and Chinese using the language selector
 
+### WebDAV Cloud Sync
+
+- **Feature Overview**: Sync your cookie profiles via a WebDAV server for backup and migration across devices.
+- **How to Configure**:
+  1. Find the "WebDAV" section at the bottom of the extension popup.
+  2. Enter your WebDAV server URL, username, and password, then click "Save Configuration".
+- **Upload Cookie Profiles**:
+  1. Click "Upload Cookies Config" to upload all saved cookie profiles as `switchcookies-profiles.json` to the root of your WebDAV server.
+  2. You will receive a status message for success or failure. If authentication fails, check your username and password.
+- **Download & Import Cookie Profiles**:
+  1. Click "Import from WebDAV" to download `switchcookies-profiles.json` from your server and merge it into your local profiles.
+  2. If the file is missing, authentication fails, or the format is invalid, you will see a detailed error message.
+- **Config File Example**:
+  ```json
+  {
+    "type": "cookie_profiles",
+    "profiles": {
+      "Sample Profile": {
+        "domain": "example.com",
+        "cookies": [ ... ],
+        "includeSubdomains": true,
+        "createdAt": "2025-05-08T08:00:00.000Z"
+      }
+    },
+    "totalProfiles": 1,
+    "exportedAt": "2025-05-08T08:00:00.000Z"
+  }
+  ```
+- **Common Errors & Solutions**:
+  - Authentication failed: Check your WebDAV server URL, username, and password.
+  - Network error: Ensure your network connection and server availability.
+  - Invalid file format: Only use config files exported by SwitchCookies.
+  - File not found: Upload first or contact your server administrator.
+
 ## Configuration
 
 ### Extension Settings
@@ -257,6 +291,40 @@ SwitchCookies 是一个浏览器扩展，旨在帮助用户管理不同网站的
 - **导出所有Cookie**：使用"导出所有Cookies"按钮导出所有浏览器Cookie（谨慎使用）
 - **夜间模式**：在夜间模式部分切换夜间模式并调整亮度/对比度
 - **语言**：使用语言选择器在英文和中文之间切换
+
+### WebDAV 云同步
+
+- **功能简介**：支持通过 WebDAV 服务器同步 Cookie 配置文件，实现多设备间配置备份与迁移。
+- **配置方法**：
+  1. 在扩展弹窗界面下方找到“WebDAV”区域。
+  2. 输入 WebDAV 服务器地址、用户名和密码，点击“保存配置”。
+- **上传 Cookie 配置**：
+  1. 点击“上传 Cookies 配置”按钮，所有已保存的 Cookie 配置将以 `switchcookies-profiles.json` 文件上传到 WebDAV 服务器根目录。
+  2. 上传成功或失败会有状态提示，认证失败请检查用户名和密码。
+- **下载并导入 Cookie 配置**：
+  1. 点击“从 WebDAV 导入”按钮，将从服务器下载 `switchcookies-profiles.json` 并自动合并导入本地配置。
+  2. 文件不存在、认证失败或格式错误均有详细提示。
+- **配置文件格式示例**：
+  ```json
+  {
+    "type": "cookie_profiles",
+    "profiles": {
+      "示例配置": {
+        "domain": "example.com",
+        "cookies": [ ... ],
+        "includeSubdomains": true,
+        "createdAt": "2025-05-08T08:00:00.000Z"
+      }
+    },
+    "totalProfiles": 1,
+    "exportedAt": "2025-05-08T08:00:00.000Z"
+  }
+  ```
+- **常见错误与处理**：
+  - 认证失败：请检查 WebDAV 服务器地址、用户名和密码。
+  - 网络错误：请确认网络连接及服务器可用性。
+  - 文件格式错误：请确保上传/下载的为 SwitchCookies 导出的配置文件。
+  - 服务器无文件：首次同步请先上传，或联系管理员。
 
 ## 配置
 
