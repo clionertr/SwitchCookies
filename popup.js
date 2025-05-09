@@ -2,9 +2,9 @@
 let currentUrl = '';
 let currentDomain = '';
 let currentTab = null;
-let includeSubdomains = true; // Default to true
+// let includeSubdomains = true; // Default to true - Moved to settingsManager.js
 let allCookies = []; // Store all cookies for search functionality
-let searchTimeout = null; // For debouncing search input
+// searchTimeout has been moved to src/popup/searchManager.js
 // Initialize the popup
 function initializeApp() {
   console.log('initializeApp: Called');
@@ -46,7 +46,12 @@ function initializeApp() {
     } else {
       console.warn('initializeApp: profileManagerUtils.loadProfiles not available yet.');
     }
-    loadIpInfoAndRiskAssessment();
+    // loadIpInfoAndRiskAssessment(); // Moved to ipInfoManagerUtils
+    if (window.ipInfoManagerUtils && typeof window.ipInfoManagerUtils.loadIpInfoAndRiskAssessment === 'function') {
+      window.ipInfoManagerUtils.loadIpInfoAndRiskAssessment();
+    } else {
+      console.warn('initializeApp: ipInfoManagerUtils.loadIpInfoAndRiskAssessment not available yet.');
+    }
   }).catch(error => {
     console.error("Failed to get current tab information:", error);
     document.getElementById('current-site').textContent = 'Error loading tab info';
@@ -62,7 +67,12 @@ function initializeApp() {
     } else {
       console.warn('initializeApp catch: profileManagerUtils.loadProfiles not available yet.');
     }
-    loadIpInfoAndRiskAssessment();
+    // loadIpInfoAndRiskAssessment(); // Moved to ipInfoManagerUtils
+    if (window.ipInfoManagerUtils && typeof window.ipInfoManagerUtils.loadIpInfoAndRiskAssessment === 'function') {
+      window.ipInfoManagerUtils.loadIpInfoAndRiskAssessment();
+    } else {
+      console.warn('initializeApp catch: ipInfoManagerUtils.loadIpInfoAndRiskAssessment not available yet.');
+    }
   });
 
   // Set up event listeners
@@ -75,48 +85,23 @@ function initializeApp() {
   });
   document.getElementById('import-file').addEventListener('change', window.cookieDataHandlerUtils.importCookies);
 
-  // Set up subdomain checkbox event listener
-  const includeSubdomainsCheckbox = document.getElementById('include-subdomains');
+  // "include-subdomains" checkbox logic is now handled by settingsManager.js
+  if (window.settingsManagerUtils && typeof window.settingsManagerUtils.initIncludeSubdomainsSetting === 'function') {
+    window.settingsManagerUtils.initIncludeSubdomainsSetting();
+  } else {
+    console.warn('initializeApp: settingsManagerUtils.initIncludeSubdomainsSetting not available yet.');
+  }
 
-  // Load saved preference
-  chrome.storage.local.get('includeSubdomains', result => {
-    if (result.includeSubdomains !== undefined) {
-      includeSubdomains = result.includeSubdomains;
-      window.includeSubdomains = includeSubdomains; // Make includeSubdomains globally accessible
-      includeSubdomainsCheckbox.checked = includeSubdomains;
-    }
-  });
-
-  // Add event listener for the checkbox
-  includeSubdomainsCheckbox.addEventListener('change', function() {
-    includeSubdomains = this.checked;
-    window.includeSubdomains = includeSubdomains; // Update global includeSubdomains
-    // Save the preference
-    chrome.storage.local.set({ includeSubdomains: includeSubdomains }, () => {
-      // Reload cookies with the new setting
-      window.cookieLoaderUtils.loadCurrentCookies();
-    });
-  });
-
-  // Set up cookie search functionality
-  const cookieSearch = document.getElementById('cookie-search');
-  const clearSearch = document.getElementById('clear-search');
-  const searchAutocomplete = document.getElementById('search-autocomplete');
-
-  // Hide clear button by default
-  clearSearch.style.display = 'none';
-
-  // Add event listeners for search input
-  cookieSearch.addEventListener('input', handleSearchInput);
-  cookieSearch.addEventListener('keydown', handleSearchKeydown);
-  clearSearch.addEventListener('click', clearSearchInput);
-
-  // Close autocomplete when clicking outside
-  document.addEventListener('click', function(e) {
-    if (!cookieSearch.contains(e.target) && !searchAutocomplete.contains(e.target)) {
-      searchAutocomplete.style.display = 'none';
-    }
-  });
+  // Cookie search functionality is now initialized by searchManager.js
+  // Ensure allCookies is initialized before calling initSearchFunctionality
+  if (window.searchManagerUtils && typeof window.searchManagerUtils.initSearchFunctionality === 'function') {
+    // We need to ensure allCookies is populated before this call.
+    // For now, we pass the reference. The actual population happens in cookieLoaderUtils.loadCurrentCookies
+    // which updates this allCookies array.
+    window.searchManagerUtils.initSearchFunctionality(allCookies);
+  } else {
+    console.warn('initializeApp: searchManagerUtils.initSearchFunctionality not available yet.');
+  }
 
   // Cookie editor modal event listeners
   const modal = document.getElementById('cookie-editor-modal');
@@ -203,7 +188,10 @@ function waitForModulesAndInit() {
     cookieDataHandlerUtils: window.cookieDataHandlerUtils,
     profileManagerUtils: window.profileManagerUtils,
     webdavManagerUtils: window.webdavManagerUtils, // Added new module
-    nightModeManagerUtils: window.nightModeManagerUtils // Added night mode module
+    nightModeManagerUtils: window.nightModeManagerUtils, // Added night mode module
+    ipInfoManagerUtils: window.ipInfoManagerUtils, // Added IP info module
+    searchManagerUtils: window.searchManagerUtils, // Added search manager module
+    settingsManagerUtils: window.settingsManagerUtils // Added settings manager module
   };
 
   const allModulesLoaded = Object.values(modules).every(module => module !== undefined);
@@ -282,268 +270,10 @@ function exportAllCookies() {
 // Functions showClearCookiesConfirmation, closeClearCookiesModal, and clearAllCookies
 // have been moved to src/popup/cookieClearer.js and are accessible via window.cookieClearerUtils
 
-// Handle search input
-function handleSearchInput(e) {
-  const searchTerm = e.target.value.trim();
+// Search functions (handleSearchInput, handleSearchKeydown, clearSearchInput, filterCookies, showAutocomplete)
+// have been moved to src/popup/searchManager.js and are accessible via window.searchManagerUtils.initSearchFunctionality
 
-  // Clear any existing timeout
-  if (searchTimeout) {
-    clearTimeout(searchTimeout);
-  }
-
-  // Show/hide clear button based on input
-  document.getElementById('clear-search').style.display = searchTerm ? 'flex' : 'none';
-
-  // Debounce the search to avoid excessive filtering
-  searchTimeout = setTimeout(() => {
-    if (searchTerm) {
-      // Filter cookies and show autocomplete
-      filterCookies(searchTerm);
-      showAutocomplete(searchTerm);
-    } else {
-      // If search is cleared, show all cookies and hide autocomplete
-      displayCookies(allCookies);
-      document.getElementById('search-autocomplete').style.display = 'none';
-    }
-  }, 300);
-}
-
-// Handle keyboard navigation in search
-function handleSearchKeydown(e) {
-  const autocomplete = document.getElementById('search-autocomplete');
-
-  // Only process if autocomplete is visible
-  if (autocomplete.style.display !== 'block') return;
-
-  const items = autocomplete.querySelectorAll('.autocomplete-item');
-  const selectedItem = autocomplete.querySelector('.selected');
-  let selectedIndex = -1;
-
-  // Find the currently selected item index
-  if (selectedItem) {
-    for (let i = 0; i < items.length; i++) {
-      if (items[i] === selectedItem) {
-        selectedIndex = i;
-        break;
-      }
-    }
-  }
-
-  switch (e.key) {
-    case 'ArrowDown':
-      e.preventDefault();
-      // Select next item or first if none selected
-      if (selectedIndex < items.length - 1) {
-        if (selectedItem) selectedItem.classList.remove('selected');
-        items[selectedIndex + 1].classList.add('selected');
-        window.uiUtils.ensureVisible(items[selectedIndex + 1], autocomplete);
-      } else if (items.length > 0 && selectedIndex === -1) {
-        items[0].classList.add('selected');
-        window.uiUtils.ensureVisible(items[0], autocomplete);
-      }
-      break;
-
-    case 'ArrowUp':
-      e.preventDefault();
-      // Select previous item or last if none selected
-      if (selectedIndex > 0) {
-        if (selectedItem) selectedItem.classList.remove('selected');
-        items[selectedIndex - 1].classList.add('selected');
-        window.uiUtils.ensureVisible(items[selectedIndex - 1], autocomplete);
-      } else if (items.length > 0 && selectedIndex === -1) {
-        items[items.length - 1].classList.add('selected');
-        window.uiUtils.ensureVisible(items[items.length - 1], autocomplete);
-      }
-      break;
-
-    case 'Enter':
-      // Apply the selected suggestion
-      if (selectedItem) {
-        e.preventDefault();
-        const cookieName = selectedItem.getAttribute('data-name');
-        document.getElementById('cookie-search').value = cookieName;
-        filterCookies(cookieName);
-        autocomplete.style.display = 'none';
-      }
-      break;
-
-    case 'Escape':
-      // Hide autocomplete
-      autocomplete.style.display = 'none';
-      break;
-  }
-}
-
-
-// Clear search input
-function clearSearchInput() {
-  const searchInput = document.getElementById('cookie-search');
-  searchInput.value = '';
-  document.getElementById('clear-search').style.display = 'none';
-  document.getElementById('search-autocomplete').style.display = 'none';
-  displayCookies(allCookies);
-  searchInput.focus();
-}
-
-// Filter cookies based on search term
-function filterCookies(searchTerm) {
-  if (!searchTerm) {
-    displayCookies(allCookies);
-    return;
-  }
-
-  // Convert search term to lowercase for case-insensitive matching
-  const term = searchTerm.toLowerCase();
-
-  // Filter cookies that match the search term
-  const filteredCookies = allCookies.filter(cookie => {
-    // Check cookie name
-    if (cookie.name.toLowerCase().includes(term)) return true;
-
-    // Check cookie domain
-    if (cookie.domain.toLowerCase().includes(term)) return true;
-
-    // Check cookie value (partial match)
-    if (cookie.value.toLowerCase().includes(term)) return true;
-
-    return false;
-  });
-
-  // Display filtered cookies
-  window.cookieLoaderUtils.displayCookies(filteredCookies);
-}
-
-// Show autocomplete suggestions
-function showAutocomplete(searchTerm) {
-  const autocomplete = document.getElementById('search-autocomplete');
-
-  if (!searchTerm) {
-    autocomplete.style.display = 'none';
-    return;
-  }
-
-  // Get unique cookie names for autocomplete
-  const term = searchTerm.toLowerCase();
-  const suggestions = [];
-  const addedNames = new Set();
-
-  // Find matching cookie names
-  allCookies.forEach(cookie => {
-    if (cookie.name.toLowerCase().includes(term) && !addedNames.has(cookie.name)) {
-      suggestions.push(cookie.name);
-      addedNames.add(cookie.name);
-    }
-  });
-
-  // Sort suggestions by relevance (exact match first, then startsWith, then includes)
-  suggestions.sort((a, b) => {
-    const aLower = a.toLowerCase();
-    const bLower = b.toLowerCase();
-
-    // Exact match gets highest priority
-    if (aLower === term && bLower !== term) return -1;
-    if (bLower === term && aLower !== term) return 1;
-
-    // Then startsWith
-    if (aLower.startsWith(term) && !bLower.startsWith(term)) return -1;
-    if (bLower.startsWith(term) && !aLower.startsWith(term)) return 1;
-
-    // Then alphabetical
-    return a.localeCompare(b);
-  });
-
-  // Limit to top 10 suggestions
-  const topSuggestions = suggestions.slice(0, 10);
-
-  // Display suggestions
-  if (topSuggestions.length > 0) {
-    autocomplete.innerHTML = '';
-
-    topSuggestions.forEach(name => {
-      const item = document.createElement('div');
-      item.className = 'autocomplete-item';
-      item.setAttribute('data-name', name);
-
-      // Highlight the matching part
-      const index = name.toLowerCase().indexOf(term);
-      if (index >= 0) {
-        const before = name.substring(0, index);
-        const match = name.substring(index, index + term.length);
-        const after = name.substring(index + term.length);
-        item.innerHTML = `${before}<span class="highlight">${match}</span>${after}`;
-      } else {
-        item.textContent = name;
-      }
-
-      // Add click event to apply the suggestion
-      item.addEventListener('click', () => {
-        document.getElementById('cookie-search').value = name;
-        filterCookies(name);
-        autocomplete.style.display = 'none';
-      });
-
-      autocomplete.appendChild(item);
-    });
-
-    autocomplete.style.display = 'block';
-  } else {
-    // Show "no results" message
-    autocomplete.innerHTML = '<div class="no-results">No matching cookies found</div>';
-    autocomplete.style.display = 'block';
-  }
-}
-
-// Load IP information and risk assessment
-function loadIpInfoAndRiskAssessment() {
-  // Fetch IP information
-  fetch('https://ip234.in/ip.json')
-    .then(response => response.json())
-    .then(data => {
-      const ipInfoDiv = document.getElementById('ip-info');
-      ipInfoDiv.innerHTML = `
-        <p>IP: ${data.ip}</p>
-        <p>City: ${data.city}</p>
-        <p>Country: ${data.country}</p>
-        <p>Organization: ${data.organization}</p>
-        <p>Timezone: ${data.timezone}</p>
-      `;
-    })
-    .catch(error => {
-      document.getElementById('ip-info').textContent = 'Failed to load IP information.';
-      console.error('Error fetching IP info:', error);
-    });
-
-  // Fetch risk assessment
-  fetch('https://ip234.in/f.json')
-    .then(response => response.json())
-    .then(data => {
-      const riskAssessmentDiv = document.getElementById('risk-assessment');
-      const score = data.data.score;
-      const risk = data.data.risk;
-      const color = getRiskColor(score);
-      riskAssessmentDiv.innerHTML = `
-        <p>Risk: <span style="color: ${color}">${risk}</span></p>
-        <p>Score: <span style="color: ${color}">${score}/100</span></p>
-      `;
-    })
-    .catch(error => {
-      document.getElementById('risk-assessment').textContent = 'Failed to load risk assessment.';
-      console.error('Error fetching risk assessment:', error);
-    });
-}
-
-// Get color based on risk score (0-100)
-function getRiskColor(score) {
-  // Convert score to a value between 0 and 1
-  const normalizedScore = score / 100;
-
-  // Green to Blue gradient
-  // Green: rgb(0, 128, 0)
-  // Blue: rgb(0, 0, 255)
-  const green = Math.round(128 * (1 - normalizedScore));
-  const blue = Math.round(255 * normalizedScore);
-
-  return `rgb(0, ${green}, ${blue})`;
-}
+// Functions loadIpInfoAndRiskAssessment and getRiskColor
+// have been moved to src/popup/ipInfoManager.js and are accessible via window.ipInfoManagerUtils
 
 

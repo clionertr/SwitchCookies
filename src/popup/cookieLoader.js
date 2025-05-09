@@ -72,67 +72,128 @@ window.cookieLoaderUtils = {
     if (typeof currentDomain !== 'string' || !currentDomain) { // Global variable
         console.warn("loadCurrentCookies: currentDomain is not a valid string or is empty.", currentDomain);
         cookiesList.innerHTML = '<div class="no-cookies">' + (langPack.no_cookies_found || 'Cannot load cookies: current domain not identified.') + '</div>';
-        allCookies = []; // Global variable
+        // Ensure allCookies is an array and clear it by modifying its length
+        if (Array.isArray(allCookies)) {
+            allCookies.length = 0;
+        } else {
+            allCookies = []; // Should not happen if initialized correctly
+        }
+        if (window.searchManagerUtils && typeof window.searchManagerUtils.refreshSearch === 'function') {
+            window.searchManagerUtils.refreshSearch();
+        }
         return;
-    }
+      }
 
-    if (includeSubdomains) { // Global variable
-      const rootDomain = this.extractRootDomain(currentDomain); // Global variable
+    const useSubdomains = window.settingsManagerUtils && typeof window.settingsManagerUtils.getIncludeSubdomainsState === 'function'
+                          ? window.settingsManagerUtils.getIncludeSubdomainsState()
+                          : true; // Default to true if manager is not available
+
+    if (useSubdomains) {
+      const rootDomain = this.extractRootDomain(currentDomain); // currentDomain is a global variable
       domainFilter = rootDomain;
     } else {
-      domainFilter = currentDomain; // Global variable
+      domainFilter = currentDomain; // currentDomain is a global variable
     }
 
     if (!domainFilter) {
-        console.warn("loadCurrentCookies: domainFilter could not be determined. currentDomain:", currentDomain, "includeSubdomains:", includeSubdomains);
+        console.warn("loadCurrentCookies: domainFilter could not be determined. currentDomain:", currentDomain, "includeSubdomains:", useSubdomains);
         cookiesList.innerHTML = '<div class="no-cookies">' + (langPack.no_cookies_found || 'No cookies found (domain filter issue).') + '</div>';
-        allCookies = []; // Global variable
+        if (Array.isArray(allCookies)) {
+            allCookies.length = 0;
+        } else {
+            allCookies = [];
+        }
+        if (window.searchManagerUtils && typeof window.searchManagerUtils.refreshSearch === 'function') {
+            window.searchManagerUtils.refreshSearch();
+        }
         return;
-    }
+      }
 
     chrome.cookies.getAll({ domain: domainFilter }, cookies => {
       if (chrome.runtime.lastError) {
         console.error("Error getting cookies for domain", domainFilter, ":", chrome.runtime.lastError.message);
         cookiesList.innerHTML = '<div class="no-cookies">' + (langPack.error_loading_cookies || 'Error loading cookies.') + '</div>';
-        allCookies = []; // Global variable
+        if (Array.isArray(allCookies)) {
+            allCookies.length = 0;
+        } else {
+            allCookies = [];
+        }
+        if (window.searchManagerUtils && typeof window.searchManagerUtils.refreshSearch === 'function') {
+            window.searchManagerUtils.refreshSearch();
+        }
         return;
       }
 
       if (!cookies || cookies.length === 0) {
         cookiesList.innerHTML = '<div class="no-cookies">' + (langPack.no_cookies_found || 'No cookies found.') + '</div>';
-        allCookies = []; // Global variable
+        if (Array.isArray(allCookies)) {
+            allCookies.length = 0;
+        } else {
+            allCookies = [];
+        }
+        if (window.searchManagerUtils && typeof window.searchManagerUtils.refreshSearch === 'function') {
+            window.searchManagerUtils.refreshSearch();
+        }
         return;
       }
 
       // Filter cookies:
       // If includeSubdomains is true, domainFilter is already the root domain, so chrome.cookies.getAll should return all relevant cookies.
       // If includeSubdomains is false, domainFilter is the exact domain. We still might get cookies for '.exact.domain'.
-      const relevantCookies = includeSubdomains
+      const useSubdomainsFiltering = window.settingsManagerUtils && typeof window.settingsManagerUtils.getIncludeSubdomainsState === 'function'
+                                   ? window.settingsManagerUtils.getIncludeSubdomainsState()
+                                   : true; // Default to true
+
+      const relevantCookies = useSubdomainsFiltering
         ? cookies // Already filtered by rootDomain by chrome.cookies.getAll
         : cookies.filter(cookie => {
+            // currentDomain is a global variable
             return cookie.domain === currentDomain || cookie.domain === `.${currentDomain}`;
           });
 
 
       if (relevantCookies.length === 0) {
         cookiesList.innerHTML = '<div class="no-cookies">' + (langPack.no_cookies_found_for_domain || 'No cookies found for this specific domain/subdomain setting.') + '</div>';
-        allCookies = []; // Global variable
-        return;
-      }
-
-      allCookies = relevantCookies; // Global variable
-
-      const searchInput = document.getElementById('cookie-search');
-      if (searchInput && searchInput.value.trim()) {
-        if (typeof window.filterCookies === 'function') { // Assumes filterCookies is global in popup.js
-            window.filterCookies(searchInput.value.trim());
+        if (Array.isArray(allCookies)) {
+            allCookies.length = 0;
         } else {
-            console.warn('filterCookies function not found on window. Displaying all relevant cookies instead.');
-            this.displayCookies(relevantCookies);
+            allCookies = [];
+        }
+        if (window.searchManagerUtils && typeof window.searchManagerUtils.refreshSearch === 'function') {
+            window.searchManagerUtils.refreshSearch();
         }
         return;
       }
-      this.displayCookies(relevantCookies);
+
+      // Modify allCookies in place to keep the reference valid for searchManager
+      if (Array.isArray(allCookies)) {
+          allCookies.length = 0; // Clear the array
+          relevantCookies.forEach(cookie => allCookies.push(cookie)); // Add new cookies
+          console.log('cookieLoader.js: allCookies updated in place. New length:', allCookies.length);
+      } else {
+          console.error('cookieLoader.js: Global allCookies is not an array!');
+          // Fallback: reassign, though this breaks the original reference for searchManager if not handled
+          allCookies = relevantCookies;
+      }
+
+      // Call refreshSearch from searchManager to update the view based on the new cookies
+      if (window.searchManagerUtils && typeof window.searchManagerUtils.refreshSearch === 'function') {
+        window.searchManagerUtils.refreshSearch();
+      } else {
+        // Fallback if searchManager is not available (e.g. during initial load before searchManager is ready)
+        // or if the old filterCookies logic was intended to be kept as a fallback.
+        // For now, we assume searchManager will handle display.
+        // If searchManager is not ready, displayCookies will be called by searchManager itself when it initializes.
+        console.warn('cookieLoader.js: searchManagerUtils.refreshSearch not available. Display might not update if search term exists.');
+        // If there's no search term, displayCookiesInternal in searchManager will show all.
+        // If there IS a search term, this might lead to brief inconsistency until searchManager is fully ready.
+        // However, the primary display is now driven by searchManager.
+        // We can directly call displayCookies here if no search term, as a direct action.
+        const searchInput = document.getElementById('cookie-search');
+        if (!searchInput || !searchInput.value.trim()) {
+            this.displayCookies(allCookies); // Display all if no search term and searchManager not ready for refresh
+        }
+      }
     });
   },
 

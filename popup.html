@@ -87,8 +87,13 @@
 
     <div class="section">
       <h2 data-i18n="cookie_profiles">Cookie Profiles</h2>
+      <div class="profile-search-container" style="margin-bottom: 10px;">
+        <div class="search-input-wrapper">
+          <input type="text" id="profile-search-input" data-i18n-placeholder="search_profiles_placeholder" placeholder="Search profiles..." autocomplete="off">
+          <button id="clear-profile-search" class="clear-search-btn" title="Clear profile search" data-i18n="clear_search_btn" style="display: none;">×</button>
+        </div>
+      </div>
       <div class="profile-controls">
-        <input type="text" id="profile-name" data-i18n-placeholder="profile_name_placeholder" placeholder="Profile name">
         <button id="save-profile" data-i18n="save_current_cookies">Save Current Cookies</button>
       </div>
 
@@ -279,6 +284,9 @@
   <script src="src/popup/profileManager.js"></script>
   <script src="src/popup/webdavManager.js"></script>
 <script src="src/popup/nightModeManager.js"></script>
+  <script src="src/popup/ipInfoManager.js"></script>
+  <script src="src/popup/searchManager.js"></script>
+  <script src="src/popup/settingsManager.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

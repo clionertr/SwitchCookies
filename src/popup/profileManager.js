@@ -2,7 +2,10 @@
 // Manages Cookie Profiles
 
 (function() {
-    'use strict';
+    'use_strict';
+
+    let allLoadedProfiles = {}; // To store all profiles for filtering
+    let profileSearchTimeout = null; // For debouncing profile search
 
     // Internal function to check if a profile matches the current domain
     function isProfileMatchingCurrentDomainInternal(profile) {
@@ -38,107 +41,149 @@
         return false;
     }
 
-    // Internal function to load saved profiles
-    function loadProfilesInternal() {
+    // Internal function to render profiles to the list
+    function renderProfiles(profilesToRender) {
         const profilesList = document.getElementById('profiles-list');
         if (!profilesList) {
-            console.error('loadProfilesInternal: profilesList element not found.');
+            console.error('renderProfiles: profilesList element not found.');
+            return;
+        }
+        profilesList.innerHTML = ''; // Clear existing list
+
+        const i18n = window.i18nUtils; // Cache for easier access
+        const userLang = i18n && i18n.getUserLang ? i18n.getUserLang() : 'en-US';
+        const langPack = i18n && i18n.LANGUAGES ? (i18n.LANGUAGES[userLang] || i18n.LANGUAGES['en-US']) : {};
+
+
+        if (Object.keys(profilesToRender).length === 0) {
+            profilesList.innerHTML = '<div class="no-profiles">' + (langPack.no_saved_profiles || 'No saved profiles.') + '</div>';
+            if (i18n && i18n.applyI18nToElement && profilesList.firstChild) {
+                i18n.applyI18nToElement(profilesList.firstChild);
+            }
             return;
         }
 
-        chrome.storage.local.get('cookieProfiles', result => {
-            const profiles = result.cookieProfiles || {};
+        const profilesArray = Object.entries(profilesToRender).map(([name, profile]) => ({
+            name,
+            profileData: profile, // Renamed to avoid conflict with profile keyword in forEach
+            isMatching: isProfileMatchingCurrentDomainInternal(profile)
+        }));
 
-            if (Object.keys(profiles).length === 0) {
-                profilesList.innerHTML = '<div class="no-profiles">' + (window.i18nUtils && window.i18nUtils.LANGUAGES && window.i18nUtils.getUserLang ? window.i18nUtils.LANGUAGES[window.i18nUtils.getUserLang()].no_saved_profiles : 'No saved profiles.') + '</div>';
-                return;
+        profilesArray.sort((a, b) => {
+            if (a.isMatching && !b.isMatching) return -1;
+            if (!a.isMatching && b.isMatching) return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        profilesArray.forEach(({ name, profileData, isMatching }) => {
+            const profileItem = document.createElement('div');
+            profileItem.className = 'profile-item';
+
+            if (isMatching) {
+                profileItem.classList.add('matching');
             }
 
-            profilesList.innerHTML = '';
+            const profileInfoDiv = document.createElement('div');
+            profileInfoDiv.className = 'profile-info';
 
-            const profilesArray = Object.entries(profiles).map(([name, profile]) => ({
-                name,
-                profile,
-                isMatching: isProfileMatchingCurrentDomainInternal(profile)
-            }));
+            const profileNameSpan = document.createElement('span');
+            profileNameSpan.className = 'profile-name';
+            profileNameSpan.textContent = name;
+            profileInfoDiv.appendChild(profileNameSpan);
 
-            profilesArray.sort((a, b) => {
-                if (a.isMatching && !b.isMatching) return -1;
-                if (!a.isMatching && b.isMatching) return 1;
-                return a.name.localeCompare(b.name);
-            });
+            if (isMatching) {
+                const matchingBadge = document.createElement('span');
+                matchingBadge.className = 'matching-badge';
+                matchingBadge.title = langPack.matches_current_site || 'Matches current site';
+                matchingBadge.textContent = langPack.current_site || 'Current Site';
+                profileInfoDiv.appendChild(matchingBadge);
+            }
 
-            profilesArray.forEach(({ name, profile, isMatching }) => {
-                const profileItem = document.createElement('div');
-                profileItem.className = 'profile-item';
+            if (profileData.includesSubdomains) {
+                const subdomainBadge = document.createElement('span');
+                subdomainBadge.className = 'subdomain-badge';
+                subdomainBadge.title = langPack.includes_cookies_from_subdomains || 'Includes cookies from subdomains';
+                subdomainBadge.textContent = langPack.all_subdomains || 'All Subdomains';
+                profileInfoDiv.appendChild(subdomainBadge);
+            }
 
-                if (isMatching) {
-                    profileItem.classList.add('matching');
-                }
+            const cookieCount = document.createElement('span');
+            cookieCount.className = 'cookie-count';
+            cookieCount.textContent = `${profileData.cookies.length} cookies`; // Use profileData
+            profileInfoDiv.appendChild(cookieCount);
 
-                const profileInfoDiv = document.createElement('div');
-                profileInfoDiv.className = 'profile-info';
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'profile-actions';
 
-                const profileNameSpan = document.createElement('span');
-                profileNameSpan.className = 'profile-name';
-                profileNameSpan.textContent = name;
-                profileInfoDiv.appendChild(profileNameSpan);
+            const applyButton = document.createElement('button');
+            applyButton.textContent = langPack.apply_profile || 'Apply';
+            applyButton.addEventListener('click', () => applyProfileInternal(name));
 
-                if (isMatching) {
-                    const matchingBadge = document.createElement('span');
-                    matchingBadge.className = 'matching-badge';
-                    matchingBadge.title = (window.i18nUtils && window.i18nUtils.LANGUAGES && window.i18nUtils.getUserLang ? window.i18nUtils.LANGUAGES[window.i18nUtils.getUserLang()].matches_current_site : 'Matches current site');
-                    matchingBadge.textContent = (window.i18nUtils && window.i18nUtils.LANGUAGES && window.i18nUtils.getUserLang ? window.i18nUtils.LANGUAGES[window.i18nUtils.getUserLang()].current_site : 'Current Site');
-                    profileInfoDiv.appendChild(matchingBadge);
-                }
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = langPack.delete_profile || 'Delete';
+            deleteButton.addEventListener('click', () => deleteProfileInternal(name));
 
-                if (profile.includesSubdomains) {
-                    const subdomainBadge = document.createElement('span');
-                    subdomainBadge.className = 'subdomain-badge';
-                    subdomainBadge.title = (window.i18nUtils && window.i18nUtils.LANGUAGES && window.i18nUtils.getUserLang ? window.i18nUtils.LANGUAGES[window.i18nUtils.getUserLang()].includes_cookies_from_subdomains : 'Includes cookies from subdomains');
-                    subdomainBadge.textContent = (window.i18nUtils && window.i18nUtils.LANGUAGES && window.i18nUtils.getUserLang ? window.i18nUtils.LANGUAGES[window.i18nUtils.getUserLang()].all_subdomains : 'All Subdomains');
-                    profileInfoDiv.appendChild(subdomainBadge);
-                }
+            actionsDiv.appendChild(applyButton);
+            actionsDiv.appendChild(deleteButton);
 
-                const cookieCount = document.createElement('span');
-                cookieCount.className = 'cookie-count';
-                cookieCount.textContent = `${profile.cookies.length} cookies`;
-                profileInfoDiv.appendChild(cookieCount);
+            profileItem.appendChild(profileInfoDiv);
+            profileItem.appendChild(actionsDiv);
 
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'profile-actions';
+            profilesList.appendChild(profileItem);
+        });
+    }
 
-                const applyButton = document.createElement('button');
-                applyButton.textContent = 'Apply'; // Consider i18n for button text if needed
-                applyButton.addEventListener('click', () => applyProfileInternal(name));
+    // Internal function to filter profiles based on search term and then render them
+    function filterAndRenderProfiles(searchTerm) {
+        const lowerSearchTerm = searchTerm.toLowerCase().trim();
+        if (!lowerSearchTerm) {
+            renderProfiles(allLoadedProfiles); // Render all if search term is empty
+            return;
+        }
 
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete'; // Consider i18n for button text if needed
-                deleteButton.addEventListener('click', () => deleteProfileInternal(name));
+        const filteredProfiles = {};
+        for (const name in allLoadedProfiles) {
+            if (name.toLowerCase().includes(lowerSearchTerm)) {
+                filteredProfiles[name] = allLoadedProfiles[name];
+            }
+            // Optionally, search in profile.domain or other fields
+            // else if (allLoadedProfiles[name].domain.toLowerCase().includes(lowerSearchTerm)) {
+            //     filteredProfiles[name] = allLoadedProfiles[name];
+            // }
+        }
+        renderProfiles(filteredProfiles);
+    }
 
-                actionsDiv.appendChild(applyButton);
-                actionsDiv.appendChild(deleteButton);
-
-                profileItem.appendChild(profileInfoDiv);
-                profileItem.appendChild(actionsDiv);
-
-                profilesList.appendChild(profileItem);
-            });
+    // Internal function to load saved profiles
+    function loadProfilesInternal() {
+        chrome.storage.local.get('cookieProfiles', result => {
+            allLoadedProfiles = result.cookieProfiles || {};
+            // Initially render all loaded profiles
+            // Check if a search term already exists (e.g. if popup was re-opened)
+            const profileSearchInput = document.getElementById('profile-search-input');
+            if (profileSearchInput && profileSearchInput.value.trim()) {
+                filterAndRenderProfiles(profileSearchInput.value.trim());
+            } else {
+                renderProfiles(allLoadedProfiles);
+            }
         });
     }
 
     // Internal function to save current cookies as a profile
     function saveCurrentProfileInternal() {
-        const profileNameInput = document.getElementById('profile-name');
-        if (!profileNameInput) {
-            console.error('saveCurrentProfileInternal: profile-name element not found.');
-            alert('Error: Profile input field not found.');
+        const i18n = window.i18nUtils; // Cache for easier access
+        const userLang = i18n && i18n.getUserLang ? i18n.getUserLang() : 'en-US';
+        const langPack = i18n && i18n.LANGUAGES ? (i18n.LANGUAGES[userLang] || i18n.LANGUAGES['en-US']) : {};
+
+        const profileName = window.prompt(langPack.enter_profile_name_prompt || 'Enter a name for this profile:');
+
+        if (profileName === null) { // User pressed Cancel
             return;
         }
-        const profileName = profileNameInput.value.trim();
-
-        if (!profileName) {
-            alert('Please enter a profile name');
+        
+        const trimmedProfileName = profileName.trim();
+        if (!trimmedProfileName) {
+            alert(langPack.profile_name_cannot_be_empty || 'Profile name cannot be empty.');
             return;
         }
 
@@ -148,7 +193,11 @@
         }
         
         let domainFilter;
-        if (window.includeSubdomains) {
+        const shouldUseSubdomains = window.settingsManagerUtils && typeof window.settingsManagerUtils.getIncludeSubdomainsState === 'function'
+                                  ? window.settingsManagerUtils.getIncludeSubdomainsState()
+                                  : true; // Default to true if manager is not available
+
+        if (shouldUseSubdomains) {
             if (window.cookieLoaderUtils && typeof window.cookieLoaderUtils.extractRootDomain === 'function') {
                 const rootDomain = window.cookieLoaderUtils.extractRootDomain(window.currentDomain);
                 domainFilter = rootDomain;
@@ -161,7 +210,7 @@
         }
 
         chrome.cookies.getAll({ domain: domainFilter }, cookies => {
-            const relevantCookies = window.includeSubdomains
+            const relevantCookies = shouldUseSubdomains
                 ? cookies
                 : cookies.filter(cookie => cookie.domain === window.currentDomain || cookie.domain === '.' + window.currentDomain);
 
@@ -176,13 +225,12 @@
                 profiles[profileName] = {
                     domain: window.currentDomain, // Save the specific domain the profile was created on
                     cookies: relevantCookies,
-                    includesSubdomains: window.includeSubdomains, // Save the state of includeSubdomains with the profile
+                    includesSubdomains: shouldUseSubdomains, // Save the state of includeSubdomains with the profile
                     createdAt: new Date().toISOString()
                 };
 
                 chrome.storage.local.set({ cookieProfiles: profiles }, () => {
-                    alert(`Profile "${profileName}" saved successfully with ${relevantCookies.length} cookies!`);
-                    profileNameInput.value = '';
+                    alert((langPack.profile_saved_successfully || `Profile "${trimmedProfileName}" saved successfully with ${relevantCookies.length} cookies!`).replace('${profileName}', trimmedProfileName).replace('${count}', relevantCookies.length));
                     loadProfilesInternal();
                 });
             });
@@ -329,5 +377,48 @@
         deleteProfile: deleteProfileInternal,
         exportAllProfiles: exportAllProfilesInternal
     };
+
+    // Add event listeners for the profile search functionality
+    // Ensure this runs after the DOM is ready, or elements might not be found.
+    // Since this script is likely loaded at the end of body or defer, DOM should be ready.
+    // However, for robustness, can wrap in DOMContentLoaded if issues arise,
+    // but typically for popups, scripts run after HTML is parsed.
+    
+    const profileSearchInput = document.getElementById('profile-search-input');
+    const clearProfileSearchButton = document.getElementById('clear-profile-search');
+
+    if (profileSearchInput) {
+        profileSearchInput.addEventListener('input', (event) => {
+            const searchTerm = event.target.value;
+            // Show/hide clear button
+            if (clearProfileSearchButton) {
+                clearProfileSearchButton.style.display = searchTerm ? 'flex' : 'none';
+            }
+            // Debounce search
+            if (profileSearchTimeout) {
+                clearTimeout(profileSearchTimeout);
+            }
+            profileSearchTimeout = setTimeout(() => {
+                filterAndRenderProfiles(searchTerm);
+            }, 300); // 300ms debounce
+        });
+    } else {
+        console.warn('Profile search input (#profile-search-input) not found.');
+    }
+
+    if (clearProfileSearchButton) {
+        clearProfileSearchButton.addEventListener('click', () => {
+            if (profileSearchInput) {
+                profileSearchInput.value = '';
+            }
+            clearProfileSearchButton.style.display = 'none';
+            filterAndRenderProfiles(''); // Render all profiles
+            if (profileSearchInput) {
+                profileSearchInput.focus();
+            }
+        });
+    } else {
+        console.warn('Clear profile search button (#clear-profile-search) not found.');
+    }
 
 })();
