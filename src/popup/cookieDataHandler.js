@@ -4,7 +4,7 @@ const cookieDataHandlerUtils = {
   exportCookiesInternal: function() {
     // Determine which domain to use for cookie retrieval
     let domainFilter;
-    if (window.includeSubdomains) {
+    if (window.settingsManagerUtils && typeof window.settingsManagerUtils.getIncludeSubdomainsState === 'function' && window.settingsManagerUtils.getIncludeSubdomainsState()) {
       // Get the root domain to include all subdomains
       const rootDomain = window.cookieLoaderUtils.extractRootDomain(window.currentDomain);
       domainFilter = rootDomain;
@@ -15,7 +15,8 @@ const cookieDataHandlerUtils = {
 
     chrome.cookies.getAll({ domain: domainFilter }, cookies => {
       // Filter cookies to only export those relevant to the current domain or its subdomains
-      const relevantCookies = window.includeSubdomains
+      const includeSubdomainsState = window.settingsManagerUtils && typeof window.settingsManagerUtils.getIncludeSubdomainsState === 'function' ? window.settingsManagerUtils.getIncludeSubdomainsState() : false; // Default to false if function not found
+      const relevantCookies = includeSubdomainsState
         ? cookies
         : cookies.filter(cookie => cookie.domain === window.currentDomain || cookie.domain === '.' + window.currentDomain);
 
@@ -28,14 +29,14 @@ const cookieDataHandlerUtils = {
       const cookiesData = {
         domain: window.currentDomain,
         cookies: relevantCookies,
-        includesSubdomains: window.includeSubdomains,
+        includesSubdomains: window.settingsManagerUtils && typeof window.settingsManagerUtils.getIncludeSubdomainsState === 'function' ? window.settingsManagerUtils.getIncludeSubdomainsState() : false,
         exportedAt: new Date().toISOString()
       };
 
       const dataStr = JSON.stringify(cookiesData, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
 
-      const subdomainSuffix = window.includeSubdomains ? '-with-subdomains' : '';
+      const subdomainSuffix = (window.settingsManagerUtils && typeof window.settingsManagerUtils.getIncludeSubdomainsState === 'function' && window.settingsManagerUtils.getIncludeSubdomainsState()) ? '-with-subdomains' : '';
       // Ensure currentDomain is defined before using it for the filename, providing a fallback.
       const currentDomainForFile = window.currentDomain || "unknown-domain";
       const exportFileDefaultName = `cookies-${currentDomainForFile}${subdomainSuffix}-${new Date().toISOString().slice(0, 10)}.json`;
