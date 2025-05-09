@@ -325,3 +325,34 @@
 *   用户已于 2025/5/9 下午4:40:25 (预估) 确认此模块功能完整并满足所有要求。
 
 ---
+
+## 模块 12: 设置管理器 ("include-subdomains" 逻辑) - ✅ 已完成 (2025/5/9)
+
+**子任务概述:**
+将 [`popup.js`](popup.js:0) 中与 "include-subdomains" 复选框相关的逻辑（加载偏好、保存偏好、更新UI及触发Cookie重载）提取到新的独立模块 [`src/popup/settingsManager.js`](src/popup/settingsManager.js)。
+
+**关键决策与实现细节:**
+*   **模块创建**: 新建 [`src/popup/settingsManager.js`](src/popup/settingsManager.js) 文件。
+*   **代码迁移与实现**:
+    *   在模块内部管理 `currentIncludeSubdomainsState` 状态。
+    *   `initIncludeSubdomainsSetting()` 函数负责从 `chrome.storage.local` 加载偏好、更新UI复选框状态，并为复选框设置 `change` 事件监听器。
+    *   事件监听器内部更新状态、保存到 `chrome.storage.local`，并调用 `window.cookieLoaderUtils.loadCurrentCookies()`。
+    *   `getIncludeSubdomainsState()` 函数返回当前的 `currentIncludeSubdomainsState`。
+*   **模块化访问方式**: `initIncludeSubdomainsSetting` 和 `getIncludeSubdomainsState` 函数挂载到全局的 `window.settingsManagerUtils` 对象上。
+*   **依赖处理**:
+    *   依赖 `chrome.storage.local` API, `#include-subdomains` DOM 元素, 和 `window.cookieLoaderUtils.loadCurrentCookies()`。
+*   **`popup.js` 修改**:
+    *   移除了全局变量 `includeSubdomains` 和相关逻辑。
+    *   在 `initializeApp()` 中调用 `window.settingsManagerUtils.initIncludeSubdomainsSetting()`。
+    *   `waitForModulesAndInit` 更新以检查 `window.settingsManagerUtils`。
+*   **其他模块更新**:
+    *   [`src/popup/cookieLoader.js`](src/popup/cookieLoader.js) 和 [`src/popup/profileManager.js`](src/popup/profileManager.js) 中对 `includeSubdomains` 状态的访问更新为调用 `window.settingsManagerUtils.getIncludeSubdomainsState()`。
+*   **`popup.html` 修改**:
+    *   在 `searchManager.js` 之后、`popup.js` 之前添加了 `<script src="src/popup/settingsManager.js"></script>`。
+
+**状态:**
+*   子任务由 "💻 Code" 模式执行。
+*   详细工作过程记录于该子任务执行期间的 [`memory-bank/activeContext.md`](memory-bank/activeContext.md) (现已归档/清空)。
+*   用户已于 2025/5/9 下午4:47:25 (预估) 确认此模块功能完整并满足所有要求。
+
+---
