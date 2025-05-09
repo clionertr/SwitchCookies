@@ -2,238 +2,78 @@
 let currentUrl = '';
 let currentDomain = '';
 let currentTab = null;
-let currentEditingCookie = null;
 let includeSubdomains = true; // Default to true
 let allCookies = []; // Store all cookies for search functionality
 let searchTimeout = null; // For debouncing search input
-// ===== 多语言支持 =====
-const LANGUAGES = {
-  "zh-CN": {
-    title: "SwitchCookies",
-    current_site: "当前站点",
-    current_site_loading: "加载中...",
-    cookie_profiles: "Cookie 配置",
-    profile_name_placeholder: "配置名称",
-    save_current_cookies: "保存当前Cookies",
-    no_saved_profiles: "暂无已保存配置",
-    export_all_profiles: "导出全部配置",
-    export_all_profiles_warning: "导出全部Cookie配置，可用于备份或迁移到其他设备。",
-    cookie_management: "Cookie 管理",
-    include_all_subdomains: "包含所有子域名（如：www.example.com 和 login.example.com）",
-    export_cookies: "导出Cookies",
-    import_cookies: "导入Cookies",
-    clear_all_cookies: "清除当前网站及其所有子域名的Cookies",
-    export_all_cookies: "导出全部Cookies",
-    export_all_warning: "警告：导出全部Cookies存在安全风险，可能导致账户泄露，请谨慎操作。",
-    current_cookies: "当前Cookies",
-    search_cookies_placeholder: "搜索Cookies...",
-    clear_search_btn: "×",
-    loading_cookies: "正在加载Cookies...",
-    no_cookies_found: "未找到该站点的Cookies",
-    no_matching_cookies: "未找到匹配的Cookies",
-    edit: "编辑",
-    matches_current_site: "匹配当前站点",
-    all_subdomains: "全部子域名",
-    includes_cookies_from_subdomains: "包含来自子域名的Cookies",
-    ip_info: "IP信息",
-    loading_ip_info: "正在加载IP信息...",
-    risk_assessment: "风险评估",
-    loading_risk_assessment: "正在加载风险评估...",
-    night_mode: "夜间模式",
-    enable_night_mode: "启用夜间模式",
-    brightness: "亮度",
-    contrast: "对比度",
-    edit_cookie: "编辑Cookie",
-    cookie_name: "名称",
-    cookie_value: "值",
-    cookie_domain: "域名",
-    cookie_path: "路径",
-    cookie_expiration: "过期时间",
-    cookie_same_site: "Same Site",
-    no_restriction: "无限制",
-    lax: "Lax",
-    strict: "Strict",
-    host_only: "仅主机",
-    session: "会话",
-    secure: "安全",
-    http_only: "Http Only",
-    save: "保存",
-    cancel: "取消",
-    clear_all_cookies_modal: "清除当前网站及其所有子域名的Cookies",
-    clear_all_cookies_confirm: "确定要清除 <span id=\"clear-domain\" class=\"highlight-text\"></span> 及其所有子域名的Cookies吗？",
-    cookies_to_be_removed: "以下Cookies将被移除：",
-    include_all_subdomains_modal: "包含所有子域名（推荐）",
-    clear_all: "全部清除",
-    only_current_site: "仅当前网站",
-    clear_only_current_site: "清除当前网站Cookies",
-    clear_only_current_site_modal: "清除当前网站Cookies",
-    clear_only_current_site_confirm: "确定要清除 <span id=\"clear-domain\" class=\"highlight-text\"></span> 的Cookies吗？",
-    clear_only: "仅清除当前网站",
-  },
-  "en-US": {
-    title: "SwitchCookies",
-    current_site: "Current Site",
-    current_site_loading: "Loading...",
-    cookie_profiles: "Cookie Profiles",
-    profile_name_placeholder: "Profile name",
-    save_current_cookies: "Save Current Cookies",
-    no_saved_profiles: "No saved profiles",
-    export_all_profiles: "Export All Profiles",
-    export_all_profiles_warning: "Export all cookie profiles for backup or migration to another device.",
-    cookie_management: "Cookie Management",
-    include_all_subdomains: "Include all subdomains (e.g., www.example.com and login.example.com)",
-    export_cookies: "Export Cookies",
-    import_cookies: "Import Cookies",
-    clear_all_cookies: "Clear cookies for this site and all its subdomains",
-    export_all_cookies: "Export All Cookies",
-    export_all_warning: "Warning: Exporting all cookies is a security risk and may lead to account leakage. Please proceed with caution.",
-    current_cookies: "Current Cookies",
-    search_cookies_placeholder: "Search cookies...",
-    clear_search_btn: "×",
-    loading_cookies: "Loading cookies...",
-    no_cookies_found: "No cookies found for this site",
-    no_matching_cookies: "No matching cookies found",
-    edit: "Edit",
-    matches_current_site: "Matches current site",
-    all_subdomains: "All Subdomains",
-    includes_cookies_from_subdomains: "Includes cookies from subdomains",
-    ip_info: "IP Information",
-    loading_ip_info: "Loading IP information...",
-    risk_assessment: "Risk Assessment",
-    loading_risk_assessment: "Loading risk assessment...",
-    night_mode: "Night Mode",
-    enable_night_mode: "Enable Night Mode",
-    brightness: "Brightness",
-    contrast: "Contrast",
-    edit_cookie: "Edit Cookie",
-    cookie_name: "Name",
-    cookie_value: "Value",
-    cookie_domain: "Domain",
-    cookie_path: "Path",
-    cookie_expiration: "Expiration",
-    cookie_same_site: "Same Site",
-    no_restriction: "No Restriction",
-    lax: "Lax",
-    strict: "Strict",
-    host_only: "Host Only",
-    session: "Session",
-    secure: "Secure",
-    http_only: "Http Only",
-    save: "Save",
-    cancel: "Cancel",
-    clear_all_cookies_modal: "Clear cookies for this site and all its subdomains",
-    clear_all_cookies_confirm: "Are you sure you want to clear cookies for <span id=\"clear-domain\" class=\"highlight-text\"></span> and all its subdomains?",
-    cookies_to_be_removed: "The following cookies will be removed:",
-    include_all_subdomains_modal: "Include all subdomains (recommended)",
-    clear_all: "Clear All",
-    only_current_site: "Only current site",
-    clear_only_current_site: "Clear cookies for this site only",
-    clear_only_current_site_modal: "Clear cookies for this site only",
-    clear_only_current_site_confirm: "Are you sure you want to clear cookies for <span id=\"clear-domain\" class=\"highlight-text\"></span> only?",
-    clear_only: "Clear only current site",
-  }
-};
-
-function getUserLang() {
-  return localStorage.getItem('switchcookies_lang') || (navigator.language === 'zh-CN' ? 'zh-CN' : 'en-US');
-}
-
-function setUserLang(lang) {
-  localStorage.setItem('switchcookies_lang', lang);
-}
-
-function applyI18n(lang) {
-  const dict = LANGUAGES[lang] || LANGUAGES['en-US'];
-  // 普通文本
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (dict[key]) {
-      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-        el.value = dict[key];
-      } else if (el.tagName === 'P' || el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'LABEL' || el.tagName === 'BUTTON' || el.tagName === 'SPAN' || el.tagName === 'DIV') {
-        // 特殊处理带HTML的内容
-        if (dict[key].includes('<span')) {
-          el.innerHTML = dict[key];
-        } else {
-          el.textContent = dict[key];
-        }
-      }
-    }
-  });
-  // placeholder
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (dict[key]) {
-      el.setAttribute('placeholder', dict[key]);
-    }
-  });
-  // select下拉选项
-  document.querySelectorAll('option[data-i18n]').forEach(opt => {
-    const key = opt.getAttribute('data-i18n');
-    if (dict[key]) {
-      opt.textContent = dict[key];
-    }
-  });
-}
-
-// 语言切换按钮逻辑
-document.addEventListener('DOMContentLoaded', function() {
-  const langBtn = document.getElementById('lang-switch-btn');
-  const langSelect = document.getElementById('lang-select');
-  if (langBtn && langSelect) {
-    // 初始化下拉框
-    const userLang = getUserLang();
-    langSelect.value = userLang;
-    applyI18n(userLang);
-
-    langBtn.addEventListener('click', () => {
-      langSelect.style.display = langSelect.style.display === 'none' ? 'inline-block' : 'none';
-    });
-    langSelect.addEventListener('change', () => {
-      setUserLang(langSelect.value);
-      applyI18n(langSelect.value);
-      langSelect.style.display = 'none';
-    });
-    // 点击页面其他地方关闭下拉
-    document.addEventListener('click', (e) => {
-      if (e.target !== langBtn && e.target !== langSelect) {
-        langSelect.style.display = 'none';
-      }
-    });
-  } else {
-    // 兜底：直接应用语言
-    applyI18n(getUserLang());
-  }
-});
-
 // Initialize the popup
-document.addEventListener('DOMContentLoaded', function() {
+function initializeApp() {
+  console.log('initializeApp: Called');
+  // Initialize i18n
+  window.i18nUtils.applyI18n(window.i18nUtils.getUserLang());
+  window.i18nUtils.initI18nUI();
+
   // Get the current tab information
-  getCurrentTab().then(tab => {
-    currentTab = tab;
-    currentUrl = tab.url;
-    currentDomain = extractDomain(currentUrl);
-    document.getElementById('current-site').textContent = currentDomain;
-
-    // Load cookies for the current site
-    loadCurrentCookies();
-
-    // Load saved profiles
-    loadProfiles();
-
-    // Load IP information and risk assessment
+  window.cookieLoaderUtils.getCurrentTab().then(tab => {
+    if (tab && tab.id && typeof tab.url === 'string') { // Validate tab object
+      currentTab = tab; // Module-scoped
+      window.currentTab = tab; // Make globally accessible for other modules
+      currentUrl = tab.url;
+      currentDomain = window.cookieLoaderUtils.extractDomain(currentUrl);
+      window.currentDomain = currentDomain; // Make globally accessible
+      document.getElementById('current-site').textContent = currentDomain;
+      
+      // Load cookies for the current site only if domain is valid
+      if (currentDomain) {
+        window.cookieLoaderUtils.loadCurrentCookies();
+      } else {
+        document.getElementById('current-site').textContent = 'N/A (Domain could not be determined)';
+        const cookiesList = document.getElementById('cookies-list');
+        if (cookiesList) cookiesList.innerHTML = '<div class="no-cookies" data-i18n="no_cookies_found">Domain not determined, cookies cannot be displayed.</div>';
+      }
+    } else {
+      console.warn("Could not get valid current tab information. UI and some features might be limited. Tab:", tab);
+      document.getElementById('current-site').textContent = 'N/A (No active tab?)';
+      window.currentTab = null; // Ensure it's null if tab info is bad
+      window.currentDomain = null; // Ensure it's null
+      const cookiesList = document.getElementById('cookies-list');
+      if (cookiesList) cookiesList.innerHTML = '<div class="no-cookies" data-i18n="no_cookies_found">No active tab, cookies cannot be displayed.</div>';
+    }
+    // These should run regardless of tab status, as they might not depend on currentDomain/currentTab
+    // or have their own internal fallbacks.
+    // loadProfiles(); // Moved to profileManagerUtils
+    if (window.profileManagerUtils && typeof window.profileManagerUtils.loadProfiles === 'function') {
+      window.profileManagerUtils.loadProfiles();
+    } else {
+      console.warn('initializeApp: profileManagerUtils.loadProfiles not available yet.');
+    }
+    loadIpInfoAndRiskAssessment();
+  }).catch(error => {
+    console.error("Failed to get current tab information:", error);
+    document.getElementById('current-site').textContent = 'Error loading tab info';
+    window.currentTab = null; // Ensure null on error
+    window.currentDomain = null; // Ensure null on error
+    const cookiesList = document.getElementById('cookies-list');
+    if (cookiesList) cookiesList.innerHTML = '<div class="no-cookies" data-i18n="no_cookies_found">Error loading tab, cookies cannot be displayed.</div>';
+    
+    // Still attempt to load non-tab-dependent parts
+    // loadProfiles(); // Moved to profileManagerUtils
+    if (window.profileManagerUtils && typeof window.profileManagerUtils.loadProfiles === 'function') {
+      window.profileManagerUtils.loadProfiles();
+    } else {
+      console.warn('initializeApp catch: profileManagerUtils.loadProfiles not available yet.');
+    }
     loadIpInfoAndRiskAssessment();
   });
 
   // Set up event listeners
-  document.getElementById('save-profile').addEventListener('click', saveCurrentProfile);
-  document.getElementById('export-all-profiles').addEventListener('click', exportAllProfiles);
-  document.getElementById('export-cookies').addEventListener('click', exportCookies);
+  document.getElementById('save-profile').addEventListener('click', () => window.profileManagerUtils.saveCurrentProfile());
+  document.getElementById('export-all-profiles').addEventListener('click', () => window.profileManagerUtils.exportAllProfiles());
+  document.getElementById('export-cookies').addEventListener('click', () => window.cookieDataHandlerUtils.exportCookies());
   document.getElementById('export-all-cookies').addEventListener('click', exportAllCookies);
   document.getElementById('import-cookies').addEventListener('click', () => {
     document.getElementById('import-file').click();
   });
-  document.getElementById('import-file').addEventListener('change', importCookies);
+  document.getElementById('import-file').addEventListener('change', window.cookieDataHandlerUtils.importCookies);
 
   // Set up subdomain checkbox event listener
   const includeSubdomainsCheckbox = document.getElementById('include-subdomains');
@@ -242,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
   chrome.storage.local.get('includeSubdomains', result => {
     if (result.includeSubdomains !== undefined) {
       includeSubdomains = result.includeSubdomains;
+      window.includeSubdomains = includeSubdomains; // Make includeSubdomains globally accessible
       includeSubdomainsCheckbox.checked = includeSubdomains;
     }
   });
@@ -249,10 +90,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add event listener for the checkbox
   includeSubdomainsCheckbox.addEventListener('change', function() {
     includeSubdomains = this.checked;
+    window.includeSubdomains = includeSubdomains; // Update global includeSubdomains
     // Save the preference
     chrome.storage.local.set({ includeSubdomains: includeSubdomains }, () => {
       // Reload cookies with the new setting
-      loadCurrentCookies();
+      window.cookieLoaderUtils.loadCurrentCookies();
     });
   });
 
@@ -282,9 +124,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const saveCookieBtn = document.getElementById('save-cookie-btn');
   const cancelCookieBtn = document.getElementById('cancel-cookie-btn');
 
-  closeBtn.addEventListener('click', closeCookieEditor);
-  saveCookieBtn.addEventListener('click', saveCookieChanges);
-  cancelCookieBtn.addEventListener('click', closeCookieEditor);
+  closeBtn.addEventListener('click', window.cookieEditorUtils.closeCookieEditor);
+  saveCookieBtn.addEventListener('click', window.cookieEditorUtils.saveCookieChanges);
+  cancelCookieBtn.addEventListener('click', window.cookieEditorUtils.closeCookieEditor);
 
   // Clear cookies modal event listeners
   const clearCookiesBtn = document.getElementById('clear-cookies');
@@ -293,18 +135,18 @@ document.addEventListener('DOMContentLoaded', function() {
   const confirmClearBtn = document.getElementById('confirm-clear-btn');
   const cancelClearBtn = document.getElementById('cancel-clear-btn');
 
-  clearCookiesBtn.addEventListener('click', showClearCookiesConfirmation);
-  clearCookiesCloseBtn.addEventListener('click', closeClearCookiesModal);
-  confirmClearBtn.addEventListener('click', clearAllCookies);
-  cancelClearBtn.addEventListener('click', closeClearCookiesModal);
+  clearCookiesBtn.addEventListener('click', window.cookieClearerUtils.showClearCookiesConfirmation);
+  clearCookiesCloseBtn.addEventListener('click', window.cookieClearerUtils.closeClearCookiesModal);
+  confirmClearBtn.addEventListener('click', window.cookieClearerUtils.clearAllCookies);
+  cancelClearBtn.addEventListener('click', window.cookieClearerUtils.closeClearCookiesModal);
 
   // Close modals when clicking outside of them
   window.addEventListener('click', (event) => {
     if (event.target === modal) {
-      closeCookieEditor();
+      window.cookieEditorUtils.closeCookieEditor();
     }
     if (event.target === clearCookiesModal) {
-      closeClearCookiesModal();
+      window.cookieClearerUtils.closeClearCookiesModal();
     }
   });
 
@@ -317,800 +159,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window._resizeTimer = setTimeout(() => {
       if (modal.style.display === 'block') {
-        centerModalInViewport(modal);
+        window.uiUtils.centerModalInViewport(modal);
       }
       if (clearCookiesModal.style.display === 'block') {
-        centerModalInViewport(clearCookiesModal);
+        window.uiUtils.centerModalInViewport(clearCookiesModal);
       }
     }, 100); // 100ms延迟
   });
 
-  // 初始化夜间模式
-  initNightMode();
-
-  // 夜间模式初始化和事件监听
-  function initNightMode() {
-    const nightModeToggle = document.getElementById('night-mode-toggle');
-    const brightnessSlider = document.getElementById('brightness');
-    const contrastSlider = document.getElementById('contrast');
-    const quickToggleButton = document.getElementById('quick-night-mode-toggle');
-
-    // 检测浏览器主题设置
-    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // 加载保存的夜间模式设置，如果没有则使用浏览器主题设置
-    chrome.storage.local.get(['nightMode', 'brightness', 'contrast'], result => {
-      let initialNightMode = prefersDarkMode;
-      if (result.nightMode !== undefined) {
-        initialNightMode = result.nightMode;
-      }
-      nightModeToggle.checked = initialNightMode;
-      document.body.classList.toggle('night-mode', initialNightMode);
-      updateQuickToggleIcon(initialNightMode);
-      updateScrollbarStyles(initialNightMode);
-
-      if (result.brightness !== undefined) {
-        brightnessSlider.value = result.brightness;
-        document.body.style.filter = `brightness(${result.brightness}%)`;
-      } else {
-        document.body.style.filter = `brightness(80%)`;
-      }
-      if (result.contrast !== undefined) {
-        contrastSlider.value = result.contrast;
-        document.body.style.filter += ` contrast(${result.contrast}%)`;
-      } else {
-        document.body.style.filter += ` contrast(100%)`;
-      }
-    });
-
-    // 夜间模式开关事件监听
-    nightModeToggle.addEventListener('change', function() {
-      const isNightMode = this.checked;
-      document.body.classList.toggle('night-mode', isNightMode);
-      updateQuickToggleIcon(isNightMode);
-      updateScrollbarStyles(isNightMode);
-      chrome.storage.local.set({ nightMode: isNightMode });
-    });
-
-    // 快速切换按钮事件监听
-    quickToggleButton.addEventListener('click', function() {
-      const currentState = nightModeToggle.checked;
-      const newState = !currentState;
-      nightModeToggle.checked = newState;
-      document.body.classList.toggle('night-mode', newState);
-      updateQuickToggleIcon(newState);
-      updateScrollbarStyles(newState);
-      chrome.storage.local.set({ nightMode: newState });
-    });
-
-    // 亮度调整事件监听
-    brightnessSlider.addEventListener('input', function() {
-      const brightness = this.value;
-      document.body.style.filter = `brightness(${brightness}%) contrast(${contrastSlider.value}%)`;
-      chrome.storage.local.set({ brightness: brightness });
-    });
-
-    // 对比度调整事件监听
-    contrastSlider.addEventListener('input', function() {
-      const contrast = this.value;
-      document.body.style.filter = `brightness(${brightnessSlider.value}%) contrast(${contrast}%)`;
-      chrome.storage.local.set({ contrast: contrast });
-    });
-
-    // 监听浏览器主题变化
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      chrome.storage.local.get(['nightMode'], result => {
-        // 只有当用户没有明确设置夜间模式时才跟随系统变化
-        if (result.nightMode === undefined) {
-          const newNightMode = e.matches;
-          nightModeToggle.checked = newNightMode;
-          document.body.classList.toggle('night-mode', newNightMode);
-          updateQuickToggleIcon(newNightMode);
-        }
-      });
-    });
-// ===== WebDAV UI 初始化与事件绑定 =====
-  loadWebDAVConfig();
-  document.getElementById('webdav-save').addEventListener('click', saveWebDAVConfig);
-  document.getElementById('webdav-upload').addEventListener('click', handleWebDAVUpload);
-  document.getElementById('webdav-download').addEventListener('click', handleWebDAVDownload);
-// ===== WebDAV 支持 =====
-
-// 读取 WebDAV 配置并填充表单
-function loadWebDAVConfig() {
-  chrome.storage.local.get('webdavConfig', (result) => {
-    const config = result.webdavConfig || {};
-    document.getElementById('webdav-url').value = config.url || '';
-    document.getElementById('webdav-username').value = config.username || '';
-    document.getElementById('webdav-password').value = config.password || '';
-  });
-}
-
-// 保存 WebDAV 配置
-function saveWebDAVConfig() {
-  const url = document.getElementById('webdav-url').value.trim();
-  const username = document.getElementById('webdav-username').value.trim();
-  const password = document.getElementById('webdav-password').value;
-  if (!url) {
-    setWebDAVStatus('请输入 WebDAV 服务器地址', true);
-    return;
-  }
-  chrome.storage.local.set({ webdavConfig: { url, username, password } }, () => {
-    setWebDAVStatus('WebDAV 配置已保存', false);
-  });
-}
-
-// 设置 WebDAV 状态/错误提示
-function setWebDAVStatus(msg, isError) {
-  const statusEl = document.getElementById('webdav-status');
-  statusEl.textContent = msg;
-  statusEl.style.color = isError ? '#d9534f' : '#28a745';
-  setTimeout(() => { statusEl.textContent = ''; }, 4000);
-}
-
-/**
- * WebDAV 上传所有 cookie 配置文件
- */
-async function handleWebDAVUpload() {
-  setWebDAVStatus('正在准备上传...', false);
-  // 读取配置
-  chrome.storage.local.get('webdavConfig', (cfgResult) => {
-    const config = cfgResult.webdavConfig || {};
-    const url = (config.url || '').replace(/\/+$/, '');
-    const username = config.username || '';
-    const password = config.password || '';
-    if (!url) {
-      setWebDAVStatus('请先填写 WebDAV 服务器地址', true);
-      return;
-    }
-    // 读取所有 cookieProfiles
-    chrome.storage.local.get('cookieProfiles', (result) => {
-      const profiles = result.cookieProfiles || {};
-      if (Object.keys(profiles).length === 0) {
-        setWebDAVStatus('没有可上传的 Cookie 配置', true);
-        return;
-      }
-      const profilesData = {
-        type: 'cookie_profiles',
-        profiles: profiles,
-        totalProfiles: Object.keys(profiles).length,
-        exportedAt: new Date().toISOString()
-      };
-      const dataStr = JSON.stringify(profilesData, null, 2);
-      const fileName = 'switchcookies-profiles.json';
-      // WebDAV PUT
-      fetch(url + '/' + fileName, {
-        method: 'PUT',
-        headers: {
-          'Authorization': 'Basic ' + btoa(username + ':' + password),
-          'Content-Type': 'application/json'
-        },
-        body: dataStr
-      }).then(async (resp) => {
-        if (resp.ok) {
-          setWebDAVStatus('上传成功', false);
-        } else if (resp.status === 401 || resp.status === 403) {
-          setWebDAVStatus('认证失败，请检查用户名和密码', true);
-        } else {
-          const text = await resp.text();
-          setWebDAVStatus('上传失败: ' + resp.status + ' ' + text, true);
-        }
-      }).catch((err) => {
-        setWebDAVStatus('网络错误: ' + err.message, true);
-      });
-    });
-  });
-}
-
-/**
- * WebDAV 下载 cookie 配置文件并导入
- */
-async function handleWebDAVDownload() {
-  setWebDAVStatus('正在从服务器下载...', false);
-  chrome.storage.local.get('webdavConfig', (cfgResult) => {
-    const config = cfgResult.webdavConfig || {};
-    const url = (config.url || '').replace(/\/+$/, '');
-    const username = config.username || '';
-    const password = config.password || '';
-    if (!url) {
-      setWebDAVStatus('请先填写 WebDAV 服务器地址', true);
-      return;
-    }
-    const fileName = 'switchcookies-profiles.json';
-    fetch(url + '/' + fileName, {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Basic ' + btoa(username + ':' + password)
-      }
-    }).then(async (resp) => {
-      if (resp.ok) {
-        const json = await resp.json();
-        if (json.type === 'cookie_profiles' && json.profiles) {
-          // 合并导入
-          chrome.storage.local.get('cookieProfiles', result => {
-            const existingProfiles = result.cookieProfiles || {};
-            const newProfiles = json.profiles;
-            const mergedProfiles = { ...existingProfiles, ...newProfiles };
-            chrome.storage.local.set({ cookieProfiles: mergedProfiles }, () => {
-              setWebDAVStatus('导入成功，共导入 ' + Object.keys(newProfiles).length + ' 个配置', false);
-              loadProfiles();
-            });
-          });
-        } else {
-          setWebDAVStatus('文件格式错误，无法导入', true);
-        }
-      } else if (resp.status === 401 || resp.status === 403) {
-        setWebDAVStatus('认证失败，请检查用户名和密码', true);
-      } else if (resp.status === 404) {
-        setWebDAVStatus('服务器上未找到配置文件', true);
-      } else {
-        const text = await resp.text();
-        setWebDAVStatus('下载失败: ' + resp.status + ' ' + text, true);
-      }
-    }).catch((err) => {
-      setWebDAVStatus('网络错误: ' + err.message, true);
-    });
-  });
-}
-  }
-
-  // 更新快速切换按钮图标
-  function updateQuickToggleIcon(isNightMode) {
-    const quickToggleButton = document.getElementById('quick-night-mode-toggle');
-    quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
-  }
-
-  // 强制更新滚动条样式
-  function updateScrollbarStyles(isNightMode) {
-    // 同时更新HTML元素的类
-    document.documentElement.classList.toggle('night-mode', isNightMode);
-
-    // 创建一个临时样式元素强制刷新滚动条样式
-    const styleEl = document.createElement('style');
-
-    if (isNightMode) {
-      // 夜间模式滚动条样式
-      styleEl.textContent = `
-        ::-webkit-scrollbar,
-        *::-webkit-scrollbar {
-          width: 8px !important;
-          height: 8px !important;
-        }
-
-        ::-webkit-scrollbar-track,
-        *::-webkit-scrollbar-track {
-          background: #2d2d2d !important;
-          border-radius: 4px !important;
-          border-left: none !important;
-          border: none !important;
-          box-shadow: none !important;
-        }
-
-        ::-webkit-scrollbar-thumb,
-        *::-webkit-scrollbar-thumb {
-          background: #111 !important;
-          border-radius: 4px !important;
-          border: none !important;
-          box-shadow: none !important;
-        }
-
-        ::-webkit-scrollbar-thumb:hover,
-        *::-webkit-scrollbar-thumb:hover {
-          background: #222 !important;
-        }
-
-        ::-webkit-scrollbar-corner,
-        *::-webkit-scrollbar-corner {
-          background: #2d2d2d !important;
-        }
-      `;
-    } else {
-      // 日间模式滚动条样式
-      styleEl.textContent = `
-        ::-webkit-scrollbar,
-        *::-webkit-scrollbar {
-          width: 8px !important;
-          height: 8px !important;
-        }
-
-        ::-webkit-scrollbar-track,
-        *::-webkit-scrollbar-track {
-          background: #f1f1f1 !important;
-          border-radius: 4px !important;
-        }
-
-        ::-webkit-scrollbar-thumb,
-        *::-webkit-scrollbar-thumb {
-          background: #ccc !important;
-          border-radius: 4px !important;
-        }
-
-        ::-webkit-scrollbar-thumb:hover,
-        *::-webkit-scrollbar-thumb:hover {
-          background: #aaa !important;
-        }
-      `;
-    }
-
-    // 添加到文档中
-    document.head.appendChild(styleEl);
-
-    // 短暂延迟后移除，以确保样式已被应用
-    setTimeout(() => {
-      document.head.removeChild(styleEl);
-    }, 100);
-
-    // 强制重绘所有可滚动元素
-    const scrollableElements = document.querySelectorAll('.profiles-list, .cookies-container, .modal-content, .cookies-list-confirm, .search-autocomplete');
-    scrollableElements.forEach(el => {
-      // 临时修改样式触发重绘
-      const originalDisplay = el.style.display;
-      el.style.display = 'none';
-      // 强制重排/重绘
-      void el.offsetHeight;
-      el.style.display = originalDisplay;
-    });
-  }
-});
-
-// Get the current active tab
-async function getCurrentTab() {
-  let queryOptions = { active: true, currentWindow: true };
-  let [tab] = await chrome.tabs.query(queryOptions);
-  return tab;
-}
-
-// Extract domain from URL
-function extractDomain(url) {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch (e) {
-    return '';
-  }
-}
-
-// Extract root domain from hostname
-function extractRootDomain(hostname) {
-  const parts = hostname.split('.');
-  if (parts.length <= 2) {
-    return hostname; // Already a root domain like "example.com"
-  }
-
-  // Handle special cases like co.uk, com.au, etc.
-  const tld = parts[parts.length - 1];
-  const sld = parts[parts.length - 2];
-
-  // Check if it's a country code TLD with a second-level domain
-  if (tld.length === 2 && sld.length <= 3) {
-    // This might be something like example.co.uk
-    return parts.slice(-3).join('.');
-  }
-
-  // Regular case like sub.example.com
-  return parts.slice(-2).join('.');
-}
-
-// Load cookies for the current site
-function loadCurrentCookies() {
-  const cookiesList = document.getElementById('cookies-list');
-  cookiesList.innerHTML = LANGUAGES[getUserLang()].loading_cookies;
-
-  // Determine which domain to use for cookie retrieval
-  let domainFilter;
-  if (includeSubdomains) {
-    // Get the root domain to include all subdomains
-    const rootDomain = extractRootDomain(currentDomain);
-    domainFilter = rootDomain;
+  // 初始化夜间模式 - 现在通过 nightModeManagerUtils 调用
+  if (window.nightModeManagerUtils && typeof window.nightModeManagerUtils.initNightMode === 'function') {
+    window.nightModeManagerUtils.initNightMode();
   } else {
-    // Use the exact current domain
-    domainFilter = currentDomain;
+    console.warn('initializeApp: nightModeManagerUtils.initNightMode not available yet.');
   }
 
-  chrome.cookies.getAll({ domain: domainFilter }, cookies => {
-    if (cookies.length === 0) {
-      cookiesList.innerHTML = '<div class="no-cookies">' + LANGUAGES[getUserLang()].no_cookies_found + '</div>';
-      allCookies = []; // Clear stored cookies
-      return;
-    }
+  // ===== WebDAV UI 初始化与事件绑定 =====
+  // WebDAV functions are now in webdavManager.js
+  if (window.webdavManagerUtils) {
+    window.webdavManagerUtils.loadWebDAVConfig();
+    const webdavSaveBtn = document.getElementById('webdav-save');
+    const webdavUploadBtn = document.getElementById('webdav-upload');
+    const webdavDownloadBtn = document.getElementById('webdav-download');
 
-    // Filter cookies to only show those relevant to the current domain or its subdomains
-    const relevantCookies = includeSubdomains
-      ? cookies
-      : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
-
-    if (relevantCookies.length === 0) {
-      cookiesList.innerHTML = '<div class="no-cookies">' + LANGUAGES[getUserLang()].no_cookies_found + '</div>';
-      allCookies = []; // Clear stored cookies
-      return;
-    }
-
-    // Store cookies for search functionality
-    allCookies = relevantCookies;
-
-    // Check if there's an active search
-    const searchInput = document.getElementById('cookie-search');
-    if (searchInput.value.trim()) {
-      // If there's a search term, filter cookies
-      filterCookies(searchInput.value.trim());
-      return;
-    }
-
-    // Otherwise display all cookies
-    displayCookies(relevantCookies);
-  });
-}
-
-// Display cookies in the list
-function displayCookies(cookiesToDisplay) {
-  const cookiesList = document.getElementById('cookies-list');
-  cookiesList.innerHTML = '';
-
-  if (cookiesToDisplay.length === 0) {
-    cookiesList.innerHTML = '<div class="no-cookies">' + LANGUAGES[getUserLang()].no_matching_cookies + '</div>';
-    return;
-  }
-
-  cookiesToDisplay.forEach(cookie => {
-    const cookieItem = document.createElement('div');
-    cookieItem.className = 'cookie-item';
-
-    const cookieText = document.createElement('div');
-    cookieText.className = 'cookie-item-text';
-
-    // Show domain for subdomain cookies
-    const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
-      ? `[${cookie.domain}] `
-      : '';
-
-    cookieText.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
-
-    const cookieActions = document.createElement('div');
-    cookieActions.className = 'cookie-item-actions';
-
-    const editButton = document.createElement('button');
-    editButton.textContent = LANGUAGES[getUserLang()].edit;
-    editButton.addEventListener('click', () => openCookieEditor(cookie));
-
-    cookieActions.appendChild(editButton);
-    cookieItem.appendChild(cookieText);
-    cookieItem.appendChild(cookieActions);
-
-    cookiesList.appendChild(cookieItem);
-  });
-}
-
-// Load saved profiles
-function loadProfiles() {
-  const profilesList = document.getElementById('profiles-list');
-
-  chrome.storage.local.get('cookieProfiles', result => {
-    const profiles = result.cookieProfiles || {};
-
-    if (Object.keys(profiles).length === 0) {
-      profilesList.innerHTML = '<div class="no-profiles">' + LANGUAGES[getUserLang()].no_saved_profiles + '</div>';
-      return;
-    }
-
-    profilesList.innerHTML = '';
-
-    // Convert profiles object to array for sorting
-    const profilesArray = Object.entries(profiles).map(([name, profile]) => ({
-      name,
-      profile,
-      // Check if profile matches current domain
-      isMatching: isProfileMatchingCurrentDomain(profile)
-    }));
-
-    // Sort profiles: matching profiles first, then by name
-    profilesArray.sort((a, b) => {
-      // First sort by matching status (matching profiles first)
-      if (a.isMatching && !b.isMatching) return -1;
-      if (!a.isMatching && b.isMatching) return 1;
-      // Then sort alphabetically by name
-      return a.name.localeCompare(b.name);
-    });
-
-    // Create profile elements
-    profilesArray.forEach(({ name, profile, isMatching }) => {
-      const profileItem = document.createElement('div');
-      profileItem.className = 'profile-item';
-
-      // Add matching class for styling
-      if (isMatching) {
-        profileItem.classList.add('matching');
-      }
-
-      const profileInfoDiv = document.createElement('div');
-      profileInfoDiv.className = 'profile-info';
-
-      const profileNameSpan = document.createElement('span');
-      profileNameSpan.className = 'profile-name';
-      profileNameSpan.textContent = name;
-
-      profileInfoDiv.appendChild(profileNameSpan);
-
-      // Add matching indicator if the profile matches current domain
-      if (isMatching) {
-        const matchingBadge = document.createElement('span');
-        matchingBadge.className = 'matching-badge';
-        matchingBadge.title = LANGUAGES[getUserLang()].matches_current_site;
-        matchingBadge.textContent = LANGUAGES[getUserLang()].current_site;
-        profileInfoDiv.appendChild(matchingBadge);
-      }
-
-      // Add subdomain indicator if the profile includes subdomains
-      if (profile.includesSubdomains) {
-        const subdomainBadge = document.createElement('span');
-        subdomainBadge.className = 'subdomain-badge';
-        subdomainBadge.title = LANGUAGES[getUserLang()].includes_cookies_from_subdomains;
-        subdomainBadge.textContent = LANGUAGES[getUserLang()].all_subdomains;
-        profileInfoDiv.appendChild(subdomainBadge);
-      }
-
-      // Add cookie count
-      const cookieCount = document.createElement('span');
-      cookieCount.className = 'cookie-count';
-      cookieCount.textContent = `${profile.cookies.length} cookies`;
-      profileInfoDiv.appendChild(cookieCount);
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'profile-actions';
-
-      const applyButton = document.createElement('button');
-      applyButton.textContent = 'Apply';
-      applyButton.addEventListener('click', () => applyProfile(name));
-
-      const deleteButton = document.createElement('button');
-      deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', () => deleteProfile(name));
-
-      actionsDiv.appendChild(applyButton);
-      actionsDiv.appendChild(deleteButton);
-
-      profileItem.appendChild(profileInfoDiv);
-      profileItem.appendChild(actionsDiv);
-
-      profilesList.appendChild(profileItem);
-    });
-  });
-}
-
-// Check if a profile matches the current domain
-function isProfileMatchingCurrentDomain(profile) {
-  // Exact domain match
-  if (profile.domain === currentDomain) {
-    return true;
-  }
-
-  // Check if profile domain is a subdomain of current domain or vice versa
-  const profileRootDomain = extractRootDomain(profile.domain);
-  const currentRootDomain = extractRootDomain(currentDomain);
-
-  // If root domains match and profile includes subdomains
-  if (profileRootDomain === currentRootDomain && profile.includesSubdomains) {
-    return true;
-  }
-
-  // Check if profile domain is a parent domain of current domain
-  if (currentDomain.endsWith('.' + profile.domain)) {
-    return true;
-  }
-
-  // Check if current domain is a parent domain of profile domain
-  if (profile.domain.endsWith('.' + currentDomain)) {
-    return true;
-  }
-
-  return false;
-}
-
-// Save current cookies as a profile
-function saveCurrentProfile() {
-  const profileName = document.getElementById('profile-name').value.trim();
-
-  if (!profileName) {
-    alert('Please enter a profile name');
-    return;
-  }
-
-  // Determine which domain to use for cookie retrieval
-  let domainFilter;
-  if (includeSubdomains) {
-    // Get the root domain to include all subdomains
-    const rootDomain = extractRootDomain(currentDomain);
-    domainFilter = rootDomain;
+    if (webdavSaveBtn) webdavSaveBtn.addEventListener('click', window.webdavManagerUtils.saveWebDAVConfig);
+    if (webdavUploadBtn) webdavUploadBtn.addEventListener('click', window.webdavManagerUtils.handleWebDAVUpload);
+    if (webdavDownloadBtn) webdavDownloadBtn.addEventListener('click', window.webdavManagerUtils.handleWebDAVDownload);
   } else {
-    // Use the exact current domain
-    domainFilter = currentDomain;
+    console.warn('initializeApp: webdavManagerUtils not available yet. WebDAV UI might not work.');
   }
-
-  chrome.cookies.getAll({ domain: domainFilter }, cookies => {
-    // Filter cookies to only save those relevant to the current domain or its subdomains
-    const relevantCookies = includeSubdomains
-      ? cookies
-      : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
-
-    if (relevantCookies.length === 0) {
-      alert('No cookies found to save');
-      return;
-    }
-
-    chrome.storage.local.get('cookieProfiles', result => {
-      const profiles = result.cookieProfiles || {};
-
-      profiles[profileName] = {
-        domain: currentDomain,
-        cookies: relevantCookies,
-        includesSubdomains: includeSubdomains,
-        createdAt: new Date().toISOString()
-      };
-
-      chrome.storage.local.set({ cookieProfiles: profiles }, () => {
-        alert(`Profile "${profileName}" saved successfully with ${relevantCookies.length} cookies!`);
-        document.getElementById('profile-name').value = '';
-        loadProfiles();
-      });
-    });
-  });
+  // ===== WebDAV 支持 (Moved to src/popup/webdavManager.js) =====
+  // initNightMode function has been moved to src/popup/nightModeManager.js
+  // updateScrollbarStyles function has been moved to src/popup/nightModeManager.js
 }
 
-// Apply a saved profile
-function applyProfile(profileName) {
-  chrome.storage.local.get('cookieProfiles', result => {
-    const profiles = result.cookieProfiles || {};
-    const profile = profiles[profileName];
+function waitForModulesAndInit() {
+  const modules = {
+    i18nUtils: window.i18nUtils,
+    uiUtils: window.uiUtils,
+    cookieLoaderUtils: window.cookieLoaderUtils,
+    cookieEditorUtils: window.cookieEditorUtils,
+    cookieClearerUtils: window.cookieClearerUtils,
+    cookieDataHandlerUtils: window.cookieDataHandlerUtils,
+    profileManagerUtils: window.profileManagerUtils,
+    webdavManagerUtils: window.webdavManagerUtils, // Added new module
+    nightModeManagerUtils: window.nightModeManagerUtils // Added night mode module
+  };
 
-    if (!profile) {
-      alert('Profile not found');
-      return;
-    }
+  const allModulesLoaded = Object.values(modules).every(module => module !== undefined);
+  const i18nReady = modules.i18nUtils && typeof modules.i18nUtils.applyI18n === 'function';
 
-    if (profile.domain !== currentDomain) {
-      if (!confirm(`This profile was saved for ${profile.domain}, but you're currently on ${currentDomain}. Apply anyway?`)) {
-        return;
-      }
-    }
+  console.log('waitForModulesAndInit: Checking for modules...', modules);
 
-    // First, remove existing cookies
-    chrome.cookies.getAll({ domain: currentDomain }, existingCookies => {
-      existingCookies.forEach(cookie => {
-        const url = (cookie.secure ? "https://" : "http://") +
-                    (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
-                    cookie.path;
-
-        chrome.cookies.remove({
-          url: url,
-          name: cookie.name
-        });
-      });
-
-      // Then set the new cookies
-      profile.cookies.forEach(cookie => {
-        const url = (cookie.secure ? "https://" : "http://") +
-                    (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
-                    cookie.path;
-
-        // Create the cookie object
-        const newCookie = {
-          url: url,
-          name: cookie.name,
-          value: cookie.value,
-          domain: cookie.domain,
-          path: cookie.path,
-          secure: cookie.secure,
-          httpOnly: cookie.httpOnly,
-          sameSite: cookie.sameSite
-        };
-
-        // Add expiration if it exists
-        if (cookie.expirationDate) {
-          newCookie.expirationDate = cookie.expirationDate;
-        }
-
-        chrome.cookies.set(newCookie);
-      });
-
-      // Refresh the current tab
-      chrome.tabs.reload(currentTab.id, {}, () => {
-        alert(`Profile "${profileName}" applied successfully! The page has been refreshed.`);
-        loadCurrentCookies();
-        loadProfiles(); // Reload profiles to update matching status
-      });
-    });
-  });
-}
-
-// Delete a profile
-function deleteProfile(profileName) {
-  if (confirm(`Are you sure you want to delete the profile "${profileName}"?`)) {
-    chrome.storage.local.get('cookieProfiles', result => {
-      const profiles = result.cookieProfiles || {};
-
-      if (profiles[profileName]) {
-        delete profiles[profileName];
-
-        chrome.storage.local.set({ cookieProfiles: profiles }, () => {
-          alert(`Profile "${profileName}" deleted successfully!`);
-          loadProfiles();
-        });
-      }
-    });
-  }
-}
-
-// Export cookies to a JSON file
-function exportCookies() {
-  // Determine which domain to use for cookie retrieval
-  let domainFilter;
-  if (includeSubdomains) {
-    // Get the root domain to include all subdomains
-    const rootDomain = extractRootDomain(currentDomain);
-    domainFilter = rootDomain;
+  if (allModulesLoaded && i18nReady) {
+    console.log('All modules are defined, proceeding with initialization.');
+    initializeApp(); // Proceed with initialization
   } else {
-    // Use the exact current domain
-    domainFilter = currentDomain;
+    const missingModules = Object.keys(modules).filter(key => modules[key] === undefined);
+    if (!i18nReady && modules.i18nUtils === undefined) missingModules.push('i18nUtils (applyI18n)');
+    console.log(`Waiting for one or more modules to be defined: ${missingModules.join(', ')}...`);
+    setTimeout(waitForModulesAndInit, 100); // Check again after 100ms
   }
-
-  chrome.cookies.getAll({ domain: domainFilter }, cookies => {
-    // Filter cookies to only export those relevant to the current domain or its subdomains
-    const relevantCookies = includeSubdomains
-      ? cookies
-      : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
-
-    if (relevantCookies.length === 0) {
-      alert('No cookies found to export');
-      return;
-    }
-
-    const cookiesData = {
-      domain: currentDomain,
-      cookies: relevantCookies,
-      includesSubdomains: includeSubdomains,
-      exportedAt: new Date().toISOString()
-    };
-
-    const dataStr = JSON.stringify(cookiesData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
-    const subdomainSuffix = includeSubdomains ? '-with-subdomains' : '';
-    const exportFileDefaultName = `cookies-${currentDomain}${subdomainSuffix}-${new Date().toISOString().slice(0, 10)}.json`;
-
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  });
 }
 
-// Export ALL cookie profiles
-function exportAllProfiles() {
-  chrome.storage.local.get('cookieProfiles', result => {
-    const profiles = result.cookieProfiles || {};
+document.addEventListener('DOMContentLoaded', waitForModulesAndInit);
 
-    if (Object.keys(profiles).length === 0) {
-      alert(LANGUAGES[getUserLang()].no_saved_profiles);
-      return;
-    }
+// Functions getCurrentTab, extractDomain, extractRootDomain, loadCurrentCookies, and displayCookies
+// have been moved to src/popup/cookieLoader.js and are accessible via window.cookieLoaderUtils
 
-    const profilesData = {
-      type: 'cookie_profiles',
-      profiles: profiles,
-      totalProfiles: Object.keys(profiles).length,
-      exportedAt: new Date().toISOString()
-    };
-
-    const dataStr = JSON.stringify(profilesData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
-    const exportFileDefaultName = `cookie-profiles-${new Date().toISOString().slice(0, 10)}.json`;
-
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  });
-}
+// Functions loadProfiles, isProfileMatchingCurrentDomain, saveCurrentProfile, applyProfile, deleteProfile, and exportAllProfiles
+// have been moved to src/popup/profileManager.js and are accessible via window.profileManagerUtils
 
 // Export ALL cookies from the browser
 function exportAllCookies() {
@@ -1155,400 +273,14 @@ function exportAllCookies() {
   });
 }
 
-// Import cookies from a JSON file
-function importCookies(event) {
-  const file = event.target.files[0];
+// Import cookies function has been moved to src/popup/cookieDataHandler.js
+// and is accessible via window.cookieDataHandlerUtils.importCookies()
 
-  if (!file) {
-    return;
-  }
+// Functions openCookieEditor, closeCookieEditor, and saveCookieChanges
+// have been moved to src/popup/cookieEditor.js and are accessible via window.cookieEditorUtils
 
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-    try {
-      const importedData = JSON.parse(e.target.result);
-
-      // Check if this is a cookie profiles export file
-      if (importedData.type === 'cookie_profiles' && importedData.profiles) {
-        // Import cookie profiles
-        chrome.storage.local.get('cookieProfiles', result => {
-          const existingProfiles = result.cookieProfiles || {};
-          const newProfiles = importedData.profiles;
-
-          // Merge profiles, new profiles will overwrite existing ones with the same name
-          const mergedProfiles = { ...existingProfiles, ...newProfiles };
-
-          chrome.storage.local.set({ cookieProfiles: mergedProfiles }, () => {
-            const newProfilesCount = Object.keys(newProfiles).length;
-            alert(`${newProfilesCount} cookie profiles have been imported successfully!`);
-            loadProfiles();
-          });
-        });
-        return;
-      }
-
-      // 兼容全部导出格式
-      if (importedData.allDomains && importedData.cookiesByDomain) {
-        // 多域名批量导入
-        const domains = Object.keys(importedData.cookiesByDomain);
-        let importedCount = 0;
-        let totalCookies = 0;
-        domains.forEach(domain => {
-          const cookiesArr = importedData.cookiesByDomain[domain];
-          totalCookies += cookiesArr.length;
-          cookiesArr.forEach(cookie => {
-            const url = (cookie.secure ? "https://" : "http://") +
-                        (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
-                        cookie.path;
-            const newCookie = {
-              url: url,
-              name: cookie.name,
-              value: cookie.value,
-              domain: cookie.domain,
-              path: cookie.path,
-              secure: cookie.secure,
-              httpOnly: cookie.httpOnly,
-              sameSite: cookie.sameSite
-            };
-            if (cookie.expirationDate) {
-              newCookie.expirationDate = cookie.expirationDate;
-            }
-            chrome.cookies.set(newCookie, () => {
-              importedCount++;
-              // 导入完成后提示
-              if (importedCount === totalCookies) {
-                alert('全部Cookies已导入，建议刷新相关页面。\\nAll cookies have been imported. Please refresh related pages.');
-                loadCurrentCookies();
-                loadProfiles();
-              }
-            });
-          });
-        });
-        return;
-      }
-
-      // 单域名导入（原有逻辑）
-      if (!importedData.domain || !Array.isArray(importedData.cookies)) {
-        throw new Error('Invalid cookies file format');
-      }
-
-      if (importedData.domain !== currentDomain) {
-        if (!confirm(`This cookies file was exported from ${importedData.domain}, but you're currently on ${currentDomain}. Import anyway?`)) {
-          return;
-        }
-      }
-
-      // First, remove existing cookies
-      chrome.cookies.getAll({ domain: currentDomain }, existingCookies => {
-        existingCookies.forEach(cookie => {
-          const url = (cookie.secure ? "https://" : "http://") +
-                      (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
-                      cookie.path;
-
-          chrome.cookies.remove({
-            url: url,
-            name: cookie.name
-          });
-        });
-
-        // Then set the new cookies
-        importedData.cookies.forEach(cookie => {
-          const url = (cookie.secure ? "https://" : "http://") +
-                      (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
-                      cookie.path;
-
-          // Create the cookie object
-          const newCookie = {
-            url: url,
-            name: cookie.name,
-            value: cookie.value,
-            domain: cookie.domain,
-            path: cookie.path,
-            secure: cookie.secure,
-            httpOnly: cookie.httpOnly,
-            sameSite: cookie.sameSite
-          };
-
-          // Add expiration if it exists
-          if (cookie.expirationDate) {
-            newCookie.expirationDate = cookie.expirationDate;
-          }
-
-          chrome.cookies.set(newCookie);
-        });
-
-        // Refresh the current tab
-        chrome.tabs.reload(currentTab.id, {}, () => {
-          alert('Cookies imported successfully! The page has been refreshed.');
-          loadCurrentCookies();
-          loadProfiles(); // Reload profiles to update matching status
-        });
-      });
-    } catch (error) {
-      alert('Error importing cookies: ' + error.message);
-    }
-  };
-
-  reader.readAsText(file);
-}
-
-// Open cookie editor modal
-function openCookieEditor(cookie) {
-  currentEditingCookie = cookie;
-
-  // Populate form fields with cookie data
-  document.getElementById('cookie-name').value = cookie.name;
-  document.getElementById('cookie-value').value = cookie.value;
-  document.getElementById('cookie-domain').value = cookie.domain;
-  document.getElementById('cookie-path').value = cookie.path;
-
-  // Set expiration date if it exists
-  if (cookie.expirationDate) {
-    const date = new Date(cookie.expirationDate * 1000);
-    document.getElementById('cookie-expiration').value = date.toISOString().slice(0, 16);
-  } else {
-    document.getElementById('cookie-expiration').value = '';
-  }
-
-  // Set sameSite value
-  document.getElementById('cookie-sameSite').value = cookie.sameSite || 'no_restriction';
-
-  // Set checkbox values
-  document.getElementById('cookie-hostOnly').checked = cookie.hostOnly || false;
-  document.getElementById('cookie-session').checked = cookie.session || false;
-  document.getElementById('cookie-secure').checked = cookie.secure || false;
-  document.getElementById('cookie-httpOnly').checked = cookie.httpOnly || false;
-
-  // Show the modal
-  const modal = document.getElementById('cookie-editor-modal');
-  modal.style.display = 'block';
-
-  // Center the modal in the viewport
-  centerModalInViewport(modal);
-}
-
-// Close cookie editor modal
-function closeCookieEditor() {
-  document.getElementById('cookie-editor-modal').style.display = 'none';
-  currentEditingCookie = null;
-
-  // 恢复主滚动条
-  document.body.style.overflow = '';
-}
-
-// Save cookie changes
-function saveCookieChanges() {
-  if (!currentEditingCookie) return;
-
-  const name = document.getElementById('cookie-name').value;
-  const value = document.getElementById('cookie-value').value;
-  const domain = document.getElementById('cookie-domain').value;
-  const path = document.getElementById('cookie-path').value;
-  const expiration = document.getElementById('cookie-expiration').value;
-  const sameSite = document.getElementById('cookie-sameSite').value;
-  // 注意：hostOnly 属性在 Chrome 扩展 API 中不直接支持，由 domain 是否以点开头决定
-  const session = document.getElementById('cookie-session').checked;
-  const secure = document.getElementById('cookie-secure').checked;
-  const httpOnly = document.getElementById('cookie-httpOnly').checked;
-
-  // First, remove the existing cookie if it exists
-  const oldUrl = (currentEditingCookie.secure ? "https://" : "http://") +
-                (currentEditingCookie.domain.charAt(0) === '.' ? currentEditingCookie.domain.substr(1) : currentEditingCookie.domain) +
-                currentEditingCookie.path;
-
-  chrome.cookies.remove({
-    url: oldUrl,
-    name: currentEditingCookie.name
-  }, () => {
-    // Now create the new cookie
-    const url = (secure ? "https://" : "http://") +
-               (domain.charAt(0) === '.' ? domain.substr(1) : domain) +
-               path;
-
-    const newCookie = {
-      url: url,
-      name: name,
-      value: value,
-      domain: domain,
-      path: path,
-      secure: secure,
-      httpOnly: httpOnly,
-      sameSite: sameSite
-    };
-
-    // Add expiration date if specified
-    if (expiration && !session) {
-      const date = new Date(expiration);
-      newCookie.expirationDate = Math.floor(date.getTime() / 1000);
-    }
-
-    chrome.cookies.set(newCookie, () => {
-      alert('Cookie updated successfully!');
-      closeCookieEditor();
-
-      // Reload cookies and maintain search if active
-      const searchInput = document.getElementById('cookie-search');
-      const searchTerm = searchInput.value.trim();
-      loadCurrentCookies();
-
-      // Re-apply search if there was one
-      if (searchTerm) {
-        setTimeout(() => {
-          filterCookies(searchTerm);
-          showAutocomplete(searchTerm);
-        }, 100);
-      }
-    });
-  });
-}
-
-// Show clear cookies confirmation modal
-function showClearCookiesConfirmation() {
-  const clearDomainSpan = document.getElementById('clear-domain');
-  clearDomainSpan.textContent = currentDomain;
-
-  const cookiesToClearList = document.getElementById('cookies-to-clear-list');
-  const clearSubdomainsCheckbox = document.getElementById('clear-subdomains');
-  const modal = document.getElementById('clear-cookies-modal');
-  const modalTitle = modal.querySelector('h2');
-  const confirmText = modal.querySelector('p[data-i18n]');
-  const confirmBtn = document.getElementById('confirm-clear-btn');
-
-  // 获取当前语言包
-  function getLangPack() {
-    const lang = localStorage.getItem('lang') || 'zh-CN';
-    return LANGUAGES[lang] || LANGUAGES['zh-CN'];
-  }
-
-  // 动态切换弹窗文案
-  function updateClearModalTexts() {
-    const langPack = getLangPack();
-    if (clearSubdomainsCheckbox.checked) {
-      modalTitle.textContent = langPack.clear_all_cookies_modal;
-      confirmText.innerHTML = langPack.clear_all_cookies_confirm;
-      confirmBtn.textContent = langPack.clear_all;
-    } else {
-      modalTitle.textContent = langPack.clear_only_current_site_modal;
-      confirmText.innerHTML = langPack.clear_only_current_site_confirm;
-      confirmBtn.textContent = langPack.clear_only;
-    }
-  }
-
-  // 动态加载 cookies 列表
-  function updateCookiesList() {
-    cookiesToClearList.innerHTML = 'Loading cookies...';
-    let filterDomain = clearSubdomainsCheckbox.checked ? extractRootDomain(currentDomain) : currentDomain;
-    chrome.cookies.getAll({ domain: filterDomain }, cookies => {
-      let relevantCookies = clearSubdomainsCheckbox.checked
-        ? cookies
-        : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
-
-      if (relevantCookies.length === 0) {
-        cookiesToClearList.innerHTML = '<div class="no-cookies">No cookies found for this site</div>';
-      } else {
-        cookiesToClearList.innerHTML = '';
-        relevantCookies.forEach(cookie => {
-          const cookieItem = document.createElement('div');
-          cookieItem.className = 'cookie-item-confirm';
-          // Show domain for subdomain cookies
-          const domainPrefix = cookie.domain !== currentDomain && cookie.domain !== '.' + currentDomain
-            ? `[${cookie.domain}] `
-            : '';
-          cookieItem.textContent = `${domainPrefix}${cookie.name}: ${cookie.value.substring(0, 30)}${cookie.value.length > 30 ? '...' : ''}`;
-          cookiesToClearList.appendChild(cookieItem);
-        });
-      }
-    });
-  }
-
-  // 绑定复选框事件
-  clearSubdomainsCheckbox.onchange = function() {
-    updateClearModalTexts();
-    updateCookiesList();
-  };
-
-  // 加载本地存储的复选框状态
-  chrome.storage.local.get('includeSubdomains', result => {
-    if (result.includeSubdomains !== undefined) {
-      clearSubdomainsCheckbox.checked = result.includeSubdomains;
-    }
-    updateClearModalTexts();
-    updateCookiesList();
-  });
-
-  // 显示弹窗并居中
-  modal.style.display = 'block';
-  centerModalInViewport(modal);
-}
-
-// Close clear cookies modal
-function closeClearCookiesModal() {
-  document.getElementById('clear-cookies-modal').style.display = 'none';
-
-  // 恢复主滚动条
-  document.body.style.overflow = '';
-}
-
-// Clear all cookies for the current domain
-function clearAllCookies() {
-  const clearSubdomainsCheckbox = document.getElementById('clear-subdomains');
-  let domainFilter;
-
-  if (clearSubdomainsCheckbox.checked) {
-    // Get the root domain to include all subdomains
-    const rootDomain = extractRootDomain(currentDomain);
-    domainFilter = rootDomain;
-  } else {
-    // Use the exact current domain
-    domainFilter = currentDomain;
-  }
-
-  chrome.cookies.getAll({ domain: domainFilter }, cookies => {
-    // Filter cookies to only clear those relevant to the current domain or its subdomains
-    const relevantCookies = clearSubdomainsCheckbox.checked
-      ? cookies
-      : cookies.filter(cookie => cookie.domain === currentDomain || cookie.domain === '.' + currentDomain);
-
-    if (relevantCookies.length === 0) {
-      alert('No cookies found to clear');
-      closeClearCookiesModal();
-      return;
-    }
-
-    relevantCookies.forEach(cookie => {
-      const url = (cookie.secure ? "https://" : "http://") +
-                 (cookie.domain.charAt(0) === '.' ? cookie.domain.substr(1) : cookie.domain) +
-                 cookie.path;
-
-      chrome.cookies.remove({
-        url: url,
-        name: cookie.name
-      });
-    });
-
-    // Refresh the current tab
-    chrome.tabs.reload(currentTab.id, {}, () => {
-      alert(`${relevantCookies.length} cookies cleared successfully! The page has been refreshed.`);
-      closeClearCookiesModal();
-
-      // Save search term if any
-      const searchInput = document.getElementById('cookie-search');
-      const searchTerm = searchInput.value.trim();
-
-      loadCurrentCookies();
-      loadProfiles(); // Reload profiles to update matching status
-
-      // Re-apply search if there was one
-      if (searchTerm) {
-        setTimeout(() => {
-          filterCookies(searchTerm);
-          showAutocomplete(searchTerm);
-        }, 100);
-      }
-    });
-  });
-}
+// Functions showClearCookiesConfirmation, closeClearCookiesModal, and clearAllCookies
+// have been moved to src/popup/cookieClearer.js and are accessible via window.cookieClearerUtils
 
 // Handle search input
 function handleSearchInput(e) {
@@ -1604,10 +336,10 @@ function handleSearchKeydown(e) {
       if (selectedIndex < items.length - 1) {
         if (selectedItem) selectedItem.classList.remove('selected');
         items[selectedIndex + 1].classList.add('selected');
-        ensureVisible(items[selectedIndex + 1], autocomplete);
+        window.uiUtils.ensureVisible(items[selectedIndex + 1], autocomplete);
       } else if (items.length > 0 && selectedIndex === -1) {
         items[0].classList.add('selected');
-        ensureVisible(items[0], autocomplete);
+        window.uiUtils.ensureVisible(items[0], autocomplete);
       }
       break;
 
@@ -1617,10 +349,10 @@ function handleSearchKeydown(e) {
       if (selectedIndex > 0) {
         if (selectedItem) selectedItem.classList.remove('selected');
         items[selectedIndex - 1].classList.add('selected');
-        ensureVisible(items[selectedIndex - 1], autocomplete);
+        window.uiUtils.ensureVisible(items[selectedIndex - 1], autocomplete);
       } else if (items.length > 0 && selectedIndex === -1) {
         items[items.length - 1].classList.add('selected');
-        ensureVisible(items[items.length - 1], autocomplete);
+        window.uiUtils.ensureVisible(items[items.length - 1], autocomplete);
       }
       break;
 
@@ -1642,19 +374,6 @@ function handleSearchKeydown(e) {
   }
 }
 
-// Ensure the selected item is visible in the scrollable container
-function ensureVisible(element, container) {
-  const containerTop = container.scrollTop;
-  const containerBottom = containerTop + container.clientHeight;
-  const elementTop = element.offsetTop;
-  const elementBottom = elementTop + element.clientHeight;
-
-  if (elementTop < containerTop) {
-    container.scrollTop = elementTop;
-  } else if (elementBottom > containerBottom) {
-    container.scrollTop = elementBottom - container.clientHeight;
-  }
-}
 
 // Clear search input
 function clearSearchInput() {
@@ -1691,7 +410,7 @@ function filterCookies(searchTerm) {
   });
 
   // Display filtered cookies
-  displayCookies(filteredCookies);
+  window.cookieLoaderUtils.displayCookies(filteredCookies);
 }
 
 // Show autocomplete suggestions
@@ -1827,55 +546,4 @@ function getRiskColor(score) {
   return `rgb(0, ${green}, ${blue})`;
 }
 
-// 更新快速切换按钮图标
-function updateQuickToggleIcon(isNightMode) {
-  const quickToggleButton = document.getElementById('quick-night-mode-toggle');
-  quickToggleButton.textContent = isNightMode ? '☀️' : '🌙';
-}
 
-// 根据当前滚动位置显示模态窗口，确保完全可见
-function centerModalInViewport(modal) {
-  if (!modal) return;
-
-  const modalContent = modal.querySelector('.modal-content');
-  if (!modalContent) return;
-
-  // 获取当前滚动位置
-  const scrollTop = window.scrollY || document.documentElement.scrollTop;
-
-  // 获取视口高度
-  const viewportHeight = window.innerHeight;
-
-  // 重置之前的样式以便获取自然高度
-  modalContent.style.top = '';
-  modalContent.style.transform = 'translateX(-50%)';
-
-  // 获取模态窗口内容的高度
-  const modalHeight = modalContent.offsetHeight;
-
-  // 计算模态窗口的理想位置
-  let topPosition;
-
-  // 如果模态窗口高度小于视口高度，则居中显示
-  if (modalHeight < viewportHeight - 40) { // 留出一些边距
-    topPosition = Math.max(scrollTop + (viewportHeight - modalHeight) / 2, scrollTop + 20);
-  } else {
-    // 如果模态窗口高度大于视口高度，则将其顶部放在视口顶部附近
-    topPosition = scrollTop + 20; // 顶部留20px边距
-  }
-
-  // 设置模态窗口位置
-  modalContent.style.top = topPosition + 'px';
-
-  // 在模态窗口打开时，禁用主滚动条
-  document.body.style.overflow = 'hidden';
-
-  // 当模态窗口关闭时，恢复主滚动条并移除事件监听器
-  const closeHandler = function() {
-    // 移除这个一次性的事件监听器
-    modal.removeEventListener('click', closeHandler);
-  };
-
-  // 添加一次性事件监听器
-  modal.addEventListener('click', closeHandler);
-}

@@ -217,9 +217,10 @@
         <div class="form-group">
           <label for="cookie-sameSite" data-i18n="cookie_same_site">Same Site</label>
           <select id="cookie-sameSite" class="form-input">
-            <option value="no_restriction" data-i18n="no_restriction">No Restriction</option>
-            <option value="lax" data-i18n="lax">Lax</option>
-            <option value="strict" data-i18n="strict">Strict</option>
+            <option value="unspecified" data-i18n="samesite_unspecified">Unspecified (Lax by default)</option>
+            <option value="no_restriction" data-i18n="samesite_no_restriction">No Restriction</option>
+            <option value="lax" data-i18n="samesite_lax">Lax</option>
+            <option value="strict" data-i18n="samesite_strict">Strict</option>
           </select>
         </div>
         <div class="form-group checkbox-group">
@@ -269,6 +270,15 @@
     </div>
   </div>
 
+  <script src="src/popup/i18n.js"></script>
+  <script src="src/popup/uiUtils.js"></script>
+  <script src="src/popup/cookieLoader.js"></script>
+  <script src="src/popup/cookieEditor.js"></script>
+<script src="src/popup/cookieClearer.js"></script>
+  <script src="src/popup/cookieDataHandler.js"></script>
+  <script src="src/popup/profileManager.js"></script>
+  <script src="src/popup/webdavManager.js"></script>
+<script src="src/popup/nightModeManager.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
