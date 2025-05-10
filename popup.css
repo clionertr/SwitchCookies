@@ -100,7 +100,7 @@ input[type="text"] {
 }
 
 .profiles-list {
-  max-height: 150px;
+  max-height: 280px;
   overflow-y: auto;
 }
 
