@@ -152,6 +152,82 @@ input[type="text"] {
 
 .profile-actions {
   display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 200px;
+}
+
+/* 配置操作按钮的专门样式 */
+.profile-actions button {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-right: 0;
+  margin-bottom: 0;
+  min-width: 60px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Apply 按钮 - 主要操作 */
+.profile-actions button:first-child {
+  background-color: #34a853;
+  color: white;
+}
+
+.profile-actions button:first-child:hover {
+  background-color: #2d8f47;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3);
+}
+
+/* Replace 按钮 - 警告操作 */
+.profile-actions .replace-btn {
+  background-color: #ff9800;
+  color: white;
+}
+
+.profile-actions .replace-btn:hover {
+  background-color: #f57c00;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+/* Delete 按钮 - 危险操作 */
+.profile-actions button:last-child {
+  background-color: #ea4335;
+  color: white;
+}
+
+.profile-actions button:last-child:hover {
+  background-color: #d33426;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(234, 67, 53, 0.3);
+}
+
+/* 按钮激活状态 */
+.profile-actions button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 响应式设计 - 小屏幕下垂直排列 */
+@media (max-width: 380px) {
+  .profile-actions {
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+  
+  .profile-actions button {
+    min-width: auto;
+    width: 100%;
+  }
 }
 
 /* Cookie search styles */
@@ -572,6 +648,34 @@ body.night-mode {
 
 .night-mode .no-profiles {
   color: #888;
+}
+
+/* 夜间模式下的配置操作按钮样式 */
+.night-mode .profile-actions button:first-child {
+  background-color: #4caf50;
+}
+
+.night-mode .profile-actions button:first-child:hover {
+  background-color: #45a049;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+.night-mode .profile-actions .replace-btn {
+  background-color: #ffa726;
+}
+
+.night-mode .profile-actions .replace-btn:hover {
+  background-color: #ff9800;
+  box-shadow: 0 2px 8px rgba(255, 167, 38, 0.4);
+}
+
+.night-mode .profile-actions button:last-child {
+  background-color: #f44336;
+}
+
+.night-mode .profile-actions button:last-child:hover {
+  background-color: #e53935;
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.4);
 }
 
 /* 夜间模式滚动条样式 - 完全覆盖 */

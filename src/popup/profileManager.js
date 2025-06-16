@@ -119,11 +119,18 @@
             applyButton.textContent = langPack.apply_profile || 'Apply';
             applyButton.addEventListener('click', () => applyProfileInternal(name));
 
+            const replaceButton = document.createElement('button');
+            replaceButton.textContent = '🔁';
+            replaceButton.className = 'replace-btn';
+            replaceButton.title = langPack.replaceWithCurrent || 'Replace with Current';
+            replaceButton.addEventListener('click', () => replaceProfileWithCurrentInternal(name));
+
             const deleteButton = document.createElement('button');
             deleteButton.textContent = langPack.delete_profile || 'Delete';
             deleteButton.addEventListener('click', () => deleteProfileInternal(name));
 
             actionsDiv.appendChild(applyButton);
+            actionsDiv.appendChild(replaceButton);
             actionsDiv.appendChild(deleteButton);
 
             profileItem.appendChild(profileInfoDiv);
@@ -170,21 +177,29 @@
     }
 
     // Internal function to save current cookies as a profile
-    function saveCurrentProfileInternal() {
+    function saveCurrentProfileInternal(profileName) {
         const i18n = window.i18nUtils; // Cache for easier access
         const userLang = i18n && i18n.getUserLang ? i18n.getUserLang() : 'en-US';
         const langPack = i18n && i18n.LANGUAGES ? (i18n.LANGUAGES[userLang] || i18n.LANGUAGES['en-US']) : {};
 
-        const profileName = window.prompt(langPack.enter_profile_name_prompt || 'Enter a name for this profile:');
-
-        if (profileName === null) { // User pressed Cancel
-            return;
-        }
+        let trimmedProfileName;
         
-        const trimmedProfileName = profileName.trim();
-        if (!trimmedProfileName) {
-            alert(langPack.profile_name_cannot_be_empty || 'Profile name cannot be empty.');
-            return;
+        if (profileName) {
+            // Direct save mode - use provided profile name
+            trimmedProfileName = profileName.trim();
+        } else {
+            // Interactive mode - prompt user for name
+            const userInputName = window.prompt(langPack.enter_profile_name_prompt || 'Enter a name for this profile:');
+
+            if (userInputName === null) { // User pressed Cancel
+                return;
+            }
+            
+            trimmedProfileName = userInputName.trim();
+            if (!trimmedProfileName) {
+                alert(langPack.profile_name_cannot_be_empty || 'Profile name cannot be empty.');
+                return;
+            }
         }
 
         if (typeof window.currentDomain !== 'string' || !window.currentDomain) {
@@ -222,7 +237,7 @@
             chrome.storage.local.get('cookieProfiles', result => {
                 const profiles = result.cookieProfiles || {};
 
-                profiles[profileName] = {
+                profiles[trimmedProfileName] = {
                     domain: window.currentDomain, // Save the specific domain the profile was created on
                     cookies: relevantCookies,
                     includesSubdomains: shouldUseSubdomains, // Save the state of includeSubdomains with the profile
@@ -234,6 +249,137 @@
                     loadProfilesInternal();
                 });
             });
+        });
+    }
+
+    // Internal function to replace a profile with current cookies
+    function replaceProfileWithCurrentInternal(profileName) {
+        const i18n = window.i18nUtils; // Cache for easier access
+        const userLang = i18n && i18n.getUserLang ? i18n.getUserLang() : 'en-US';
+        const langPack = i18n && i18n.LANGUAGES ? (i18n.LANGUAGES[userLang] || i18n.LANGUAGES['en-US']) : {};
+
+        if (!profileName || !profileName.trim()) {
+            alert('Invalid profile name.');
+            return;
+        }
+
+        // Check if user has disabled replace warnings
+        chrome.storage.local.get('disableReplaceWarnings', (result) => {
+            if (result.disableReplaceWarnings) {
+                // Direct execution without confirmation
+                saveCurrentProfileInternal(profileName);
+                return;
+            }
+
+            // Show custom confirmation dialog with "don't show again" option
+            showReplaceConfirmDialog(profileName, langPack);
+        });
+    }
+
+    // Internal function to show custom replace confirmation dialog
+    function showReplaceConfirmDialog(profileName, langPack) {
+        // Create modal overlay
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+
+        // Create modal content
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+
+        // Close button
+        const closeBtn = document.createElement('span');
+        closeBtn.className = 'close';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.onclick = () => {
+            document.body.removeChild(modal);
+        };
+
+        // Title
+        const title = document.createElement('h2');
+        title.textContent = langPack.replaceWithCurrent || 'Replace with Current';
+
+        // Confirmation message
+        const message = document.createElement('p');
+        const confirmText = langPack.replace_profile_confirm || 'Are you sure you want to replace profile "{profileName}" with current cookies?';
+        message.textContent = confirmText.replace('{profileName}', profileName);
+
+        // Checkbox container
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.className = 'checkbox-item';
+        checkboxContainer.style.marginBottom = '20px';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'dont-show-replace-warning';
+
+        const checkboxLabel = document.createElement('label');
+        checkboxLabel.htmlFor = 'dont-show-replace-warning';
+        checkboxLabel.textContent = langPack.dont_show_again || "Don't show this again";
+
+        checkboxContainer.appendChild(checkbox);
+        checkboxContainer.appendChild(checkboxLabel);
+
+        // Action buttons
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'form-actions';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = langPack.replaceWithCurrent || 'Replace';
+        confirmBtn.className = 'warning-btn';
+        confirmBtn.onclick = () => {
+            // Save preference if checkbox is checked
+            if (checkbox.checked) {
+                chrome.storage.local.set({ disableReplaceWarnings: true });
+            }
+            
+            // Execute replacement
+            saveCurrentProfileInternal(profileName);
+            
+            // Close modal
+            document.body.removeChild(modal);
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = langPack.cancel || 'Cancel';
+        cancelBtn.onclick = () => {
+            document.body.removeChild(modal);
+        };
+
+        // Assemble modal
+        actionsDiv.appendChild(confirmBtn);
+        actionsDiv.appendChild(cancelBtn);
+
+        modalContent.appendChild(closeBtn);
+        modalContent.appendChild(title);
+        modalContent.appendChild(message);
+        modalContent.appendChild(checkboxContainer);
+        modalContent.appendChild(actionsDiv);
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        // 将弹窗居中显示
+        if (window.uiUtils && typeof window.uiUtils.centerModalInViewport === 'function') {
+            window.uiUtils.centerModalInViewport(modal);
+        }
+
+        // Close modal when clicking outside
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
+    }
+
+    // Internal function to reset replace warnings
+    function resetReplaceWarningsInternal() {
+        chrome.storage.local.remove('disableReplaceWarnings', () => {
+            const i18n = window.i18nUtils;
+            const userLang = i18n && i18n.getUserLang ? i18n.getUserLang() : 'en-US';
+            const langPack = i18n && i18n.LANGUAGES ? (i18n.LANGUAGES[userLang] || i18n.LANGUAGES['en-US']) : {};
+            
+            alert('Replace warnings have been reset. Confirmation dialogs will now appear again.');
         });
     }
 
@@ -375,6 +521,8 @@
         saveCurrentProfile: saveCurrentProfileInternal,
         applyProfile: applyProfileInternal,
         deleteProfile: deleteProfileInternal,
+        replaceProfileWithCurrent: replaceProfileWithCurrentInternal,
+        resetReplaceWarnings: resetReplaceWarningsInternal,
         exportAllProfiles: exportAllProfilesInternal
     };
 

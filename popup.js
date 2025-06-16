@@ -78,6 +78,7 @@ function initializeApp() {
   // Set up event listeners
   document.getElementById('save-profile').addEventListener('click', () => window.profileManagerUtils.saveCurrentProfile());
   document.getElementById('export-all-profiles').addEventListener('click', () => window.profileManagerUtils.exportAllProfiles());
+  document.getElementById('reset-replace-warnings').addEventListener('click', () => window.profileManagerUtils.resetReplaceWarnings());
   document.getElementById('export-cookies').addEventListener('click', () => window.cookieDataHandlerUtils.exportCookies());
   document.getElementById('export-all-cookies').addEventListener('click', () => window.cookieDataHandlerUtils.exportAllBrowserCookies());
   document.getElementById('import-cookies').addEventListener('click', () => {

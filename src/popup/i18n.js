@@ -62,6 +62,11 @@ const LANGUAGES = {
     clear_only_current_site_modal: "清除当前网站Cookies",
     clear_only_current_site_confirm: "确定要清除 <span id=\"clear-domain\" class=\"highlight-text\"></span> 的Cookies吗？",
     clear_only: "仅清除当前网站",
+    replaceWithCurrent: "使用当前 Cookie 替换",
+    replace_profile_confirm: "确定要用当前 Cookie 替换配置 \"{profileName}\" 吗？",
+    dont_show_again: "不再显示此提示",
+    reset_replace_warnings: "重置替换警告",
+    reset_replace_warnings_desc: "重新启用所有 Cookie 替换确认提示",
   },
   "en-US": {
     title: "SwitchCookies",
@@ -124,6 +129,11 @@ const LANGUAGES = {
     clear_only_current_site_modal: "Clear cookies for this site only",
     clear_only_current_site_confirm: "Are you sure you want to clear cookies for <span id=\"clear-domain\" class=\"highlight-text\"></span> only?",
     clear_only: "Clear only current site",
+    replaceWithCurrent: "Replace with Current",
+    replace_profile_confirm: "Are you sure you want to replace profile \"{profileName}\" with current cookies?",
+    dont_show_again: "Don't show this again",
+    reset_replace_warnings: "Reset Replace Warnings",
+    reset_replace_warnings_desc: "Re-enable all cookie replacement confirmation prompts",
   }
 };
 
