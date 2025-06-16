@@ -6,6 +6,59 @@
 
     let allLoadedProfiles = {}; // To store all profiles for filtering
     let profileSearchTimeout = null; // For debouncing profile search
+// Helper to fetch localStorage & sessionStorage from a tab (works for MV3 chrome.scripting and MV2 chrome.tabs APIs)
+    function fetchStorageFromTabInternal(tabId, callback) {
+        if (!tabId) {
+            callback({ localStorageData: {}, sessionStorageData: {} });
+            return;
+        }
+
+        // Function executed inside the target page context
+        const injectFunc = () => {
+            const ls = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                ls[k] = localStorage.getItem(k);
+            }
+            const ss = {};
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const k = sessionStorage.key(i);
+                ss[k] = sessionStorage.getItem(k);
+            }
+            return { localStorageData: ls, sessionStorageData: ss };
+        };
+
+        // Prefer Manifest V3 API
+        if (chrome.scripting && chrome.scripting.executeScript) {
+            chrome.scripting.executeScript(
+                { target: { tabId }, func: injectFunc },
+                (results) => {
+                    if (chrome.runtime.lastError || !results || !results[0]) {
+                        console.error('fetchStorageFromTabInternal (MV3) error:', chrome.runtime.lastError);
+                        callback({ localStorageData: {}, sessionStorageData: {} });
+                    } else {
+                        callback(results[0].result);
+                    }
+                }
+            );
+        } else if (chrome.tabs && chrome.tabs.executeScript) { // Fallback for MV2
+            chrome.tabs.executeScript(
+                tabId,
+                { code: '(' + injectFunc.toString() + ')();' },
+                (results) => {
+                    if (chrome.runtime.lastError || !results || !results[0]) {
+                        console.error('fetchStorageFromTabInternal (MV2) error:', chrome.runtime.lastError);
+                        callback({ localStorageData: {}, sessionStorageData: {} });
+                    } else {
+                        callback(results[0]);
+                    }
+                }
+            );
+        } else {
+            console.warn('No suitable executeScript API found – returning empty storage.');
+            callback({ localStorageData: {}, sessionStorageData: {} });
+        }
+    }
 
     // Internal function to check if a profile matches the current domain
     function isProfileMatchingCurrentDomainInternal(profile) {
@@ -234,19 +287,24 @@
                 return;
             }
 
-            chrome.storage.local.get('cookieProfiles', result => {
-                const profiles = result.cookieProfiles || {};
+            // 先抓取当前页面的 localStorage / sessionStorage，再连同 Cookies 一并保存
+            fetchStorageFromTabInternal(window.currentTab ? window.currentTab.id : null, (storageData) => {
+                chrome.storage.local.get('cookieProfiles', result => {
+                    const profiles = result.cookieProfiles || {};
 
-                profiles[trimmedProfileName] = {
-                    domain: window.currentDomain, // Save the specific domain the profile was created on
-                    cookies: relevantCookies,
-                    includesSubdomains: shouldUseSubdomains, // Save the state of includeSubdomains with the profile
-                    createdAt: new Date().toISOString()
-                };
+                    profiles[trimmedProfileName] = {
+                        domain: window.currentDomain,          // 保存创建时具体域名
+                        cookies: relevantCookies,
+                        includesSubdomains: shouldUseSubdomains,
+                        localStorage: storageData.localStorageData,
+                        sessionStorage: storageData.sessionStorageData,
+                        createdAt: new Date().toISOString()
+                    };
 
-                chrome.storage.local.set({ cookieProfiles: profiles }, () => {
-                    alert((langPack.profile_saved_successfully || `Profile "${trimmedProfileName}" saved successfully with ${relevantCookies.length} cookies!`).replace('${profileName}', trimmedProfileName).replace('${count}', relevantCookies.length));
-                    loadProfilesInternal();
+                    chrome.storage.local.set({ cookieProfiles: profiles }, () => {
+                        alert((langPack.profile_saved_successfully || `Profile "${trimmedProfileName}" saved successfully with ${relevantCookies.length} cookies!`).replace('${profileName}', trimmedProfileName).replace('${count}', relevantCookies.length));
+                        loadProfilesInternal();
+                    });
                 });
             });
         });
@@ -444,21 +502,56 @@
                     });
 
                     Promise.all(setPromises).then(() => {
-                        if (window.currentTab && window.currentTab.id) {
-                            chrome.tabs.reload(window.currentTab.id, {}, () => {
-                                alert(`Profile "${profileName}" applied successfully! The page has been refreshed.`);
+                        // ===== 写入 localStorage / sessionStorage =====
+                        const lsData = profile.localStorage || {};
+                        const ssData = profile.sessionStorage || {};
+
+                        const injectFunc = (ls, ss) => {
+                            try {
+                                localStorage.clear();
+                                Object.entries(ls).forEach(([k, v]) => localStorage.setItem(k, v));
+                                sessionStorage.clear();
+                                Object.entries(ss).forEach(([k, v]) => sessionStorage.setItem(k, v));
+                            } catch (e) {
+                                console.error('Storage injection error', e);
+                            }
+                        };
+
+                        const afterStorageApplied = () => {
+                            if (window.currentTab && window.currentTab.id) {
+                                chrome.tabs.reload(window.currentTab.id, {}, () => {
+                                    alert(`Profile "${profileName}" applied successfully! The page has been refreshed.`);
+                                    if (window.cookieLoaderUtils && typeof window.cookieLoaderUtils.loadCurrentCookies === 'function') {
+                                        window.cookieLoaderUtils.loadCurrentCookies();
+                                    }
+                                    loadProfilesInternal();
+                                });
+                            } else {
+                                alert(`Profile "${profileName}" applied successfully! Please refresh the page manually.`);
                                 if (window.cookieLoaderUtils && typeof window.cookieLoaderUtils.loadCurrentCookies === 'function') {
                                     window.cookieLoaderUtils.loadCurrentCookies();
                                 }
                                 loadProfilesInternal();
-                            });
-                        } else {
-                            alert(`Profile "${profileName}" applied successfully! Please refresh the page manually.`);
-                            if (window.cookieLoaderUtils && typeof window.cookieLoaderUtils.loadCurrentCookies === 'function') {
-                                window.cookieLoaderUtils.loadCurrentCookies();
+                                console.warn('applyProfileInternal: window.currentTab.id not available for reload.');
                             }
-                            loadProfilesInternal();
-                            console.warn('applyProfileInternal: window.currentTab.id not available for reload.');
+                        };
+
+                        // MV3 优先
+                        if (chrome.scripting && chrome.scripting.executeScript) {
+                            chrome.scripting.executeScript(
+                                {
+                                    target: { tabId: window.currentTab.id },
+                                    func: injectFunc,
+                                    args: [lsData, ssData]
+                                },
+                                () => afterStorageApplied()
+                            );
+                        } else if (chrome.tabs && chrome.tabs.executeScript) { // 兼容 MV2
+                            const codeStr = '(' + injectFunc.toString() + ')(' + JSON.stringify(lsData) + ',' + JSON.stringify(ssData) + ');';
+                            chrome.tabs.executeScript(window.currentTab.id, { code: codeStr }, () => afterStorageApplied());
+                        } else {
+                            console.warn('No executeScript API – skipping storage injection.');
+                            afterStorageApplied();
                         }
                     });
                 });
