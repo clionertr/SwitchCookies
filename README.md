@@ -18,6 +18,14 @@
 
 比喻：Cookie 是网站发给你的**会员卡**，localStorage / IndexedDB 是网站寄放在你浏览器里的**储物柜**。有的网站把登录态写在卡上，有的写在柜子里，本扩展两样都会一起搬走、一起换回来。
 
+### 截图
+
+<p align="center">
+  <img src="images/accounts-light.png" alt="账号页（浅色）" width="280">
+  <img src="images/accounts-dark.png" alt="账号页（深色）" width="280">
+  <img src="images/cookies-all.png" alt="Cookie 页：全部网站按域名分组" width="280">
+</p>
+
 ### 三步上手
 
 1. 在网站登录账号 A → 点扩展图标 → **保存当前登录**（名字已自动填好，回车即可）
@@ -86,6 +94,10 @@ Apache License 2.0
 Multiple accounts on the same site (work / personal / test)? Logging in and out is a chore. SwitchCookies snapshots the *current login state* as an **account** and lets you switch back with one click; the page reloads automatically.
 
 Analogy: cookies are the **membership card** a site hands you; localStorage / IndexedDB are the **lockers** the site keeps in your browser. Some sites put the login on the card, some in the locker. This extension moves both together.
+
+### Screenshots
+
+See the images in the Chinese section above (accounts tab light / dark, cookies tab grouped by domain).
 
 ### Three steps
 
