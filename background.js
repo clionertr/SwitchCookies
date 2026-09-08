@@ -1,37 +1,19 @@
-// Background script for SwitchCookies extension
+// background.js —— Service Worker（MV3）
+// 说明：本扩展绝大多数逻辑运行在弹窗页面内，后台只做两件事：
+//   1. 安装/升级时打印版本，便于排查；
+//   2. 响应"在独立标签页中打开"的请求（弹窗很小，用户想看大图时用）。
 
-// Listen for installation
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('SwitchCookies extension installed');
+chrome.runtime.onInstalled.addListener((details) => {
+  const version = chrome.runtime.getManifest().version;
+  console.log(`[SwitchCookies] ${details.reason} -> v${version}`);
 });
 
-// Listen for messages from the popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'getCookies') {
-    chrome.cookies.getAll({ domain: request.domain }, cookies => {
-      sendResponse({ cookies: cookies });
-    });
-    return true; // Required for async response
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'open-in-tab') {
+    // 携带原始 tabId，让独立页面知道该操作哪个网站
+    const url = chrome.runtime.getURL(`popup.html?tabId=${message.tabId ?? ''}`);
+    chrome.tabs.create({ url }).then(() => sendResponse({ ok: true }));
+    return true; // 异步响应
   }
-  
-  if (request.action === 'setCookie') {
-    chrome.cookies.set(request.cookie, cookie => {
-      sendResponse({ success: !!cookie, cookie: cookie });
-    });
-    return true; // Required for async response
-  }
-  
-  if (request.action === 'removeCookie') {
-    const url = (request.cookie.secure ? "https://" : "http://") + 
-                (request.cookie.domain.charAt(0) === '.' ? request.cookie.domain.substr(1) : request.cookie.domain) + 
-                request.cookie.path;
-    
-    chrome.cookies.remove({
-      url: url,
-      name: request.cookie.name
-    }, details => {
-      sendResponse({ success: !!details });
-    });
-    return true; // Required for async response
-  }
+  return false;
 });

@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
   "name": "SwitchCookies",
-  "version": "1.0",
-  "description": "Get, modify, save and switch between website cookies",
+  "version": "2.0.0",
+  "description": "一键保存并切换网站登录状态（Cookie + localStorage + sessionStorage + IndexedDB）",
+  "minimum_chrome_version": "119",
   "permissions": [
     "cookies",
     "storage",
+    "unlimitedStorage",
     "activeTab",
     "tabs",
     "scripting"
@@ -22,7 +24,8 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "icons": {
     "16": "icons/icon16.png",
