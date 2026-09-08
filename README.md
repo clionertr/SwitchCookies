@@ -1,433 +1,133 @@
 # SwitchCookies
 
 <div align="center">
-  <img src="icons/icon128.png" alt="SwitchCookies Logo" width="128" height="128">
-  <h3>Manage and switch between different cookie profiles for websites</h3>
+  <img src="icons/icon128.png" alt="SwitchCookies" width="96" height="96">
+  <h3>一键保存并切换网站登录状态</h3>
+  <p>Cookie · localStorage · sessionStorage · IndexedDB</p>
 </div>
 
-<p align="center">
-  <a href="#key-features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#usage">Usage</a> •
-  <a href="#configuration">Configuration</a> •
-  <a href="#development">Development</a> •
-  <a href="#contributing">Contributing</a> •
-  <a href="#license">License</a> •
-  <a href="#faq">FAQ</a>
-</p>
+<p align="center"><a href="#中文">中文</a> | <a href="#english">English</a></p>
 
-<p align="center">
-  <a href="#中文说明">中文</a> | <a href="#english">English</a>
-</p>
+---
+
+## 中文
+
+### 它解决什么问题
+
+同一个网站有多个账号（工作号 / 私人号 / 测试号），来回退出登录很烦。SwitchCookies 把"此刻的登录状态"整体存成一个**账号**，之后一键切换，页面自动刷新。
+
+比喻：Cookie 是网站发给你的**会员卡**，localStorage / IndexedDB 是网站寄放在你浏览器里的**储物柜**。有的网站把登录态写在卡上，有的写在柜子里，本扩展两样都会一起搬走、一起换回来。
+
+### 三步上手
+
+1. 在网站登录账号 A → 点扩展图标 → **保存当前登录**（名字已自动填好，回车即可）
+2. 退出，登录账号 B → 再保存一次
+3. 之后点账号旁的 **切换**，或在网页上**右键 → SwitchCookies → 账号名**，秒换
+
+### 功能一览
+
+| 标签页 | 内容 |
+|---|---|
+| **账号** | 本站账号置顶高亮；一键切换；⋯ 菜单里可覆盖 / 重命名 / 导出 / 删除（删除后 5 秒内可撤销） |
+| **Cookie** | 「本站」平铺可编辑；「全部网站」按域名分组折叠，可搜索、新增、编辑、删单条或整个域名 |
+| **更多** | 导入 / 导出（账号文件、单站 Cookie、全部 Cookie 三种格式互认）；WebDAV 备份；手动查询出口 IP；主题（跟随系统 / 浅色 / 深色）；语言；存储用量 |
+| **右键菜单** | 网页任意处右键 → SwitchCookies → 直接列出本站账号，不用打开面板 |
+
+### 安装
+
+Chrome 119+。
+
+1. 从 [Releases](https://github.com/clionertr/SwitchCookies/releases) 下载 zip 并解压（或直接 clone 本仓库）
+2. 打开 `chrome://extensions/`，右上角开启 **开发者模式**
+3. 点 **加载已解压的扩展程序**，选择解压后的文件夹
+
+### 保存了什么、存在哪
+
+每个账号包含：域名、是否含子域名、全部 Cookie（含 CHIPS 分区 Cookie）、可选的 localStorage / sessionStorage / IndexedDB 快照、时间戳。全部保存在 `chrome.storage.local`（本机），不上传任何服务器。已声明 `unlimitedStorage`，不受 10 MB 配额限制；写入失败会明确报错，不会"假成功"。
+
+### 已知边界
+
+- **IndexedDB 写回**：若页面在切换瞬间仍持有数据库连接，该库会被跳过并提示"被页面占用"，刷新后再切一次即可。含 `Blob` / `File` 的记录无法序列化，会被跳过。
+- **sharedStorage**：浏览器有意对扩展隔离，无 API 可读，不支持。
+- **超大数据**：单条 localStorage 值 > 512 KB、单个 IndexedDB 库序列化后 > 20 MB 会被跳过，保存成功提示里会注明跳过数量。
+- **公共后缀**：`github.io`、`vercel.app` 这类平台域名会被当成一个站，请关闭"包含子域名"。
+- **WebDAV 密码**明文保存在本机 `chrome.storage.local`。
+
+### 开发
+
+零构建：原生 ES Module，无 `npm install`。
+
+```
+manifest.json          MV3，Service Worker 为 module
+background.js          右键菜单、在标签页打开
+popup.html / popup.css 界面与 CSS 变量主题
+src/lib/               纯逻辑库（无 DOM 依赖，后台与弹窗共用）
+  domain.js            域名 / 根域名 / 公共后缀
+  cookies.js           Cookie 读写（CHIPS、__Host- 前缀、hostOnly）
+  storage.js           账号与设置持久化（写入失败必抛错）
+  pageStorage.js       注入页面抓取 / 写回 LS / SS / IndexedDB
+  i18n.js theme.js webdav.js ipinfo.js ui.js
+src/popup/             视图层
+  main.js context.js profilesView.js cookiesView.js cookieEditor.js moreView.js
+```
+
+发布：改 `manifest.json` 的 `version`，打 tag `vX.Y.Z` 推送，GitHub Actions 自动打 zip 并发 Release。
+
+### 许可
+
+Apache License 2.0
 
 ---
 
 ## English
 
-SwitchCookies is a Chrome extension designed to help users manage cookie settings for different websites and quickly switch between different accounts. It provides a convenient way to save, edit, and apply cookie profiles, making it easy to switch between multiple accounts on the same website without the hassle of logging in and out.
-
-## Key Features
-
-- **Cookie Profile Management**: Save, load, and switch between different cookie profiles for websites
-- **Individual Cookie Editing**: Edit properties of individual cookies directly from the extension
-- **Subdomain Support**: Get and clear cookies from all subdomains of a website
-- **Cookie Search**: Search and filter cookies with fuzzy search and autocomplete
-- **One-Click Clearing**: Clear all cookies for the current website with confirmation
-- **Export/Import**: Export and import cookie profiles as JSON files
-- **Auto-Refresh**: Automatically refresh the page after applying cookies
-- **Night Mode**: Dark theme support with customizable brightness and contrast
-- **Multilingual Support**: Available in English and Chinese
-- **Security Features**: IP information and risk assessment
-
-## Screenshots
-
-<div align="center">
-  <img src="images/image2.png" alt="SwitchCookies Screenshot 1" width="400">
-  <img src="images/image.png" alt="SwitchCookies Screenshot 2" width="400">
-</div>
-
-## Installation
-
-### Method 1: Chrome Web Store (Coming Soon)
-- The extension will be available on the Chrome Web Store in the future
-
-### Method 2: Manual Installation
-1. Download this repository as a ZIP file or clone it
-2. Extract the ZIP file to a folder on your computer
-3. Open Chrome and navigate to `chrome://extensions/`
-4. Enable "Developer mode" in the top-right corner
-5. Click "Load unpacked" and select the extracted folder
-6. The extension should now be installed and visible in your browser toolbar
-
-## Usage
-
-### Basic Usage
-1. Click on the SwitchCookies icon in your browser toolbar to open the extension
-2. The extension will display the current website and its cookies
-3. To save the current cookies as a profile:
-   - Enter a name in the "Profile name" field
-   - Click "Save Current Cookies"
-4. To apply a saved profile:
-   - Find the profile in the list
-   - Click "Apply" to load those cookies
-   - The page will automatically refresh
-
-### Cookie Management
-- **View Cookies**: All cookies for the current website are displayed in the "Current Cookies" section
-- **Search Cookies**: Use the search box to find specific cookies by name, value, or domain
-- **Edit Cookies**: Click the edit icon next to a cookie to modify its properties
-- **Export Cookies**: Click "Export Cookies" to save the current website's cookies as a JSON file
-- **Import Cookies**: Click "Import Cookies" to load cookies from a previously exported JSON file
-- **Clear Cookies**: Click "Clear All Cookies" to remove all cookies for the current website
-
-### Advanced Features
-- **Include Subdomains**: Toggle the "Include all subdomains" checkbox to include or exclude cookies from subdomains
-- **Export All Cookies**: Use the "Export All Cookies" button to export all browser cookies (use with caution)
-- **Night Mode**: Toggle night mode and adjust brightness/contrast in the Night Mode section
-- **Language**: Switch between English and Chinese using the language selector
-
-### WebDAV Cloud Sync
-
-- **Feature Overview**: Sync your cookie profiles via a WebDAV server for backup and migration across devices.
-- **How to Configure**:
-  1. Find the "WebDAV" section at the bottom of the extension popup.
-  2. Enter your WebDAV server URL, username, and password, then click "Save Configuration".
-- **Upload Cookie Profiles**:
-  1. Click "Upload Cookies Config" to upload all saved cookie profiles as `switchcookies-profiles.json` to the root of your WebDAV server.
-  2. You will receive a status message for success or failure. If authentication fails, check your username and password.
-- **Download & Import Cookie Profiles**:
-  1. Click "Import from WebDAV" to download `switchcookies-profiles.json` from your server and merge it into your local profiles.
-  2. If the file is missing, authentication fails, or the format is invalid, you will see a detailed error message.
-- **Config File Example**:
-  ```json
-  {
-    "type": "cookie_profiles",
-    "profiles": {
-      "Sample Profile": {
-        "domain": "example.com",
-        "cookies": [ ... ],
-        "includeSubdomains": true,
-        "createdAt": "2025-05-08T08:00:00.000Z"
-      }
-    },
-    "totalProfiles": 1,
-    "exportedAt": "2025-05-08T08:00:00.000Z"
-  }
-  ```
-- **Common Errors & Solutions**:
-  - Authentication failed: Check your WebDAV server URL, username, and password.
-  - Network error: Ensure your network connection and server availability.
-  - Invalid file format: Only use config files exported by SwitchCookies.
-  - File not found: Upload first or contact your server administrator.
-
-## Configuration
-
-### Extension Settings
-All settings are automatically saved and persisted between browser sessions:
-
-- **Language Preference**: The extension remembers your selected language
-- **Night Mode Settings**: Night mode state, brightness, and contrast are saved
-- **Subdomain Inclusion**: Your preference for including subdomains is remembered
-- **Cookie Profiles**: All saved cookie profiles are stored locally
+### What it does
 
-### Cookie Profiles
-Cookie profiles are stored in your browser's local storage and include:
-- Domain information
-- All cookies associated with the domain
-- Whether subdomains are included
-- Creation timestamp
+Multiple accounts on the same site (work / personal / test)? Logging in and out is a chore. SwitchCookies snapshots the *current login state* as an **account** and lets you switch back with one click; the page reloads automatically.
 
-## Development
+Analogy: cookies are the **membership card** a site hands you; localStorage / IndexedDB are the **lockers** the site keeps in your browser. Some sites put the login on the card, some in the locker. This extension moves both together.
 
-### Project Structure
-- **manifest.json**: Extension configuration file defining basic information and permissions
-- **background.js**: Background script for handling extension logic
-- **popup.html**: Popup interface for user interaction
-- **popup.js**: Logic script for the popup interface
-- **popup.css**: Style file for the popup interface
-- **icons/**: Contains extension icon files
-- **images/**: Contains screenshots for documentation
+### Three steps
 
-### Building from Source
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/SwitchCookies.git
-   cd SwitchCookies
-   ```
+1. Log in as account A → click the icon → **Save current login** (name is pre-filled, just press Enter)
+2. Log out, log in as B → save again
+3. Click **Switch** next to an account, or **right-click the page → SwitchCookies → account name**
 
-2. Install dependencies:
-   ```
-   npm install
-   ```
+### Features
 
-3. Build the extension:
-   ```
-   npm run build
-   ```
+| Tab | Contents |
+|---|---|
+| **Accounts** | Accounts for the current site pinned on top; one-click switch; ⋯ menu for overwrite / rename / export / delete (undo within 5 s) |
+| **Cookies** | "This site": flat, editable list. "All sites": grouped by domain, searchable, add / edit / delete single cookies or whole domains |
+| **More** | Import / export (account files, single-site cookies, all cookies — all three formats recognised); WebDAV backup; manual public-IP lookup; theme (system / light / dark); language; storage usage |
+| **Context menu** | Right-click any page → SwitchCookies → accounts for this site, no panel needed |
 
-4. The built extension will be in the `dist` directory
+### Install
 
-### Creating a Release
-The project includes a GitHub workflow that automatically builds and packages the extension when a new tag is pushed:
+Chrome 119+.
 
-1. Create a new tag:
-   ```
-   git tag v1.x.x
-   git push origin v1.x.x
-   ```
+1. Download the zip from [Releases](https://github.com/clionertr/SwitchCookies/releases) and unzip (or clone the repo)
+2. Open `chrome://extensions/`, enable **Developer mode**
+3. **Load unpacked**, pick the folder
 
-2. The workflow will create a release with the packaged extension
-
-## Testing
+### What is stored, and where
 
-### Manual Testing
-1. Load the extension in Chrome using Developer mode
-2. Test all features on different websites
-3. Verify that cookie profiles are correctly saved and applied
-4. Check that the extension works with various cookie configurations
-
-### Reporting Issues
-If you encounter any bugs or issues, please report them on the GitHub issue tracker with:
-- A clear description of the problem
-- Steps to reproduce the issue
-- Expected vs. actual behavior
-- Browser version and operating system
-
-## Contributing
-
-Contributions are welcome! Here's how you can contribute:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add some amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-Please make sure your code follows the existing style and includes appropriate documentation.
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
-
-## FAQ
-
-### Q: Is it safe to use this extension?
-A: The extension only accesses cookies for the websites you visit and stores data locally in your browser. It does not send your cookies to any external servers. However, be cautious when exporting cookies, as they may contain sensitive information.
-
-### Q: Can I use this extension to log into multiple accounts simultaneously?
-A: No, this extension helps you switch between accounts, but you can only be logged into one account per website at a time in the same browser window. Use different browser profiles for simultaneous logins.
-
-### Q: Will my saved profiles work across different computers?
-A: No, cookie profiles are saved in your browser's local storage and are not synchronized across devices. You can manually export profiles and import them on another computer.
-
-### Q: Does this work with all websites?
-A: The extension should work with most websites, but some websites with advanced security measures may detect cookie modifications and log you out.
-
-### Q: Can I edit cookies for any website?
-A: You can only view and edit cookies for the website you're currently visiting, as restricted by browser security policies.
-
----
-
-## 中文说明
-
-SwitchCookies 是一个浏览器扩展，旨在帮助用户管理不同网站的Cookie设置，快速切换到不同的账号。它提供了一种便捷的方式来保存、编辑和应用Cookie配置，使您可以在同一网站上轻松切换多个账号，而无需频繁登录和退出。
-
-## 主要功能
-
-- **Cookie配置管理**：保存、加载和切换网站的不同Cookie配置
-- **单个Cookie编辑**：直接从扩展中编辑单个Cookie的属性
-- **子域名支持**：获取和清除网站所有子域名的Cookie
-- **Cookie搜索**：使用模糊搜索和自动完成功能搜索和过滤Cookie
-- **一键清除**：一键清除当前网站的所有Cookie（带确认提示）
-- **导出/导入**：将Cookie配置导出为JSON文件或从JSON文件导入
-- **自动刷新**：应用Cookie后自动刷新页面
-- **夜间模式**：深色主题支持，可自定义亮度和对比度
-- **多语言支持**：支持英文和中文
-- **安全功能**：IP信息和风险评估
-
-## 截图
-
-<div align="center">
-  <img src="images/image2.png" alt="SwitchCookies 截图1" width="400">
-  <img src="images/image.png" alt="SwitchCookies 截图2" width="400">
-</div>
-
-## 安装
-
-### 方法1：Chrome网上应用店（即将推出）
-- 该扩展将来会在Chrome网上应用店提供
-
-### 方法2：手动安装
-1. 下载本仓库的ZIP文件或克隆仓库
-2. 将ZIP文件解压到计算机上的文件夹中
-3. 打开Chrome并导航至`chrome://extensions/`
-4. 在右上角启用"开发者模式"
-5. 点击"加载已解压的扩展程序"并选择解压后的文件夹
-6. 扩展现在应该已安装并在浏览器工具栏中可见
-
-## 使用方法
-
-### 基本使用
-1. 点击浏览器工具栏中的SwitchCookies图标打开扩展
-2. 扩展将显示当前网站及其Cookie
-3. 要将当前Cookie保存为配置：
-   - 在"配置名称"字段中输入名称
-   - 点击"保存当前Cookies"
-4. 要应用已保存的配置：
-   - 在列表中找到该配置
-   - 点击"应用"加载这些Cookie
-   - 页面将自动刷新
-
-### Cookie管理
-- **查看Cookie**：当前网站的所有Cookie都显示在"当前Cookies"部分
-- **搜索Cookie**：使用搜索框按名称、值或域名查找特定Cookie
-- **编辑Cookie**：点击Cookie旁边的编辑图标修改其属性
-- **导出Cookie**：点击"导出Cookies"将当前网站的Cookie保存为JSON文件
-- **导入Cookie**：点击"导入Cookies"从之前导出的JSON文件加载Cookie
-- **清除Cookie**：点击"清除所有Cookies"删除当前网站的所有Cookie
-
-### 高级功能
-- **包含子域名**：切换"包含所有子域名"复选框以包含或排除子域名的Cookie
-- **导出所有Cookie**：使用"导出所有Cookies"按钮导出所有浏览器Cookie（谨慎使用）
-- **夜间模式**：在夜间模式部分切换夜间模式并调整亮度/对比度
-- **语言**：使用语言选择器在英文和中文之间切换
-
-### WebDAV 云同步
-
-- **功能简介**：支持通过 WebDAV 服务器同步 Cookie 配置文件，实现多设备间配置备份与迁移。
-- **配置方法**：
-  1. 在扩展弹窗界面下方找到“WebDAV”区域。
-  2. 输入 WebDAV 服务器地址、用户名和密码，点击“保存配置”。
-- **上传 Cookie 配置**：
-  1. 点击“上传 Cookies 配置”按钮，所有已保存的 Cookie 配置将以 `switchcookies-profiles.json` 文件上传到 WebDAV 服务器根目录。
-  2. 上传成功或失败会有状态提示，认证失败请检查用户名和密码。
-- **下载并导入 Cookie 配置**：
-  1. 点击“从 WebDAV 导入”按钮，将从服务器下载 `switchcookies-profiles.json` 并自动合并导入本地配置。
-  2. 文件不存在、认证失败或格式错误均有详细提示。
-- **配置文件格式示例**：
-  ```json
-  {
-    "type": "cookie_profiles",
-    "profiles": {
-      "示例配置": {
-        "domain": "example.com",
-        "cookies": [ ... ],
-        "includeSubdomains": true,
-        "createdAt": "2025-05-08T08:00:00.000Z"
-      }
-    },
-    "totalProfiles": 1,
-    "exportedAt": "2025-05-08T08:00:00.000Z"
-  }
-  ```
-- **常见错误与处理**：
-  - 认证失败：请检查 WebDAV 服务器地址、用户名和密码。
-  - 网络错误：请确认网络连接及服务器可用性。
-  - 文件格式错误：请确保上传/下载的为 SwitchCookies 导出的配置文件。
-  - 服务器无文件：首次同步请先上传，或联系管理员。
-
-## 配置
-
-### 扩展设置
-所有设置都会自动保存并在浏览器会话之间保持：
-
-- **语言偏好**：扩展会记住您选择的语言
-- **夜间模式设置**：夜间模式状态、亮度和对比度会被保存
-- **子域名包含**：您对包含子域名的偏好会被记住
-- **Cookie配置**：所有保存的Cookie配置都存储在本地
-
-### Cookie配置
-Cookie配置存储在浏览器的本地存储中，包括：
-- 域名信息
-- 与域名关联的所有Cookie
-- 是否包含子域名
-- 创建时间戳
-
-## 开发
-
-### 项目结构
-- **manifest.json**：扩展配置文件，定义基本信息和权限
-- **background.js**：后台脚本，处理扩展逻辑
-- **popup.html**：弹出界面，用于用户交互
-- **popup.js**：弹出界面的逻辑脚本
-- **popup.css**：弹出界面的样式文件
-- **icons/**：包含扩展图标文件
-- **images/**：包含文档和说明的截图
-
-### 从源代码构建
-1. 克隆仓库：
-   ```
-   git clone https://github.com/yourusername/SwitchCookies.git
-   cd SwitchCookies
-   ```
-
-2. 安装依赖：
-   ```
-   npm install
-   ```
-
-3. 构建扩展：
-   ```
-   npm run build
-   ```
-
-4. 构建好的扩展将位于`dist`目录中
-
-### 创建发布版本
-该项目包含一个GitHub工作流，当推送新标签时会自动构建和打包扩展：
-
-1. 创建新标签：
-   ```
-   git tag v1.x.x
-   git push origin v1.x.x
-   ```
-
-2. 工作流将创建一个包含打包扩展的发布版本
-
-## 测试
-
-### 手动测试
-1. 使用开发者模式在Chrome中加载扩展
-2. 在不同网站上测试所有功能
-3. 验证Cookie配置是否正确保存和应用
-4. 检查扩展是否适用于各种Cookie配置
-
-### 报告问题
-如果您遇到任何错误或问题，请在GitHub问题跟踪器上报告，包括：
-- 问题的清晰描述
-- 重现问题的步骤
-- 预期行为与实际行为
-- 浏览器版本和操作系统
-
-## 贡献
-
-欢迎贡献！以下是您可以贡献的方式：
-
-1. Fork仓库
-2. 创建功能分支：`git checkout -b feature/amazing-feature`
-3. 提交您的更改：`git commit -m '添加一些惊人的功能'`
-4. 推送到分支：`git push origin feature/amazing-feature`
-5. 打开Pull Request
-
-请确保您的代码遵循现有风格并包含适当的文档。
-
-## 许可证
-
-本项目采用Apache License 2.0许可 - 有关详细信息，请参阅LICENSE文件。
-
-## 常见问题
-
-### 问：使用这个扩展安全吗？
-答：该扩展只访问您访问的网站的Cookie，并将数据存储在浏览器本地。它不会将您的Cookie发送到任何外部服务器。但是，导出Cookie时要谨慎，因为它们可能包含敏感信息。
-
-### 问：我可以使用这个扩展同时登录多个账号吗？
-答：不可以，这个扩展帮助您切换账号，但在同一浏览器窗口中，每个网站一次只能登录一个账号。使用不同的浏览器配置文件进行同时登录。
-
-### 问：我保存的配置在不同计算机上有效吗？
-答：不会，Cookie配置保存在浏览器的本地存储中，不会在设备之间同步。您可以手动导出配置并在另一台计算机上导入。
-
-### 问：这对所有网站都有效吗？
-答：该扩展应该适用于大多数网站，但一些具有高级安全措施的网站可能会检测到Cookie修改并将您登出。
-
-### 问：我可以编辑任何网站的Cookie吗？
-答：由于浏览器安全策略的限制，您只能查看和编辑当前正在访问的网站的Cookie。
+Each account: domain, subdomain flag, all cookies (including CHIPS partitioned cookies), optional localStorage / sessionStorage / IndexedDB snapshot, timestamps. Everything lives in `chrome.storage.local` on your machine; nothing is uploaded. `unlimitedStorage` is declared, so the 10 MB quota does not apply, and any write failure is reported loudly — no silent "saved".
+
+### Known limits
+
+- **IndexedDB restore**: if the page still holds a database connection at the moment of switching, that database is skipped with an "in use" notice — reload and switch again. Records containing `Blob` / `File` cannot be serialised and are skipped.
+- **sharedStorage**: deliberately isolated from extensions by the browser; no API exists. Not supported.
+- **Large values**: a single localStorage entry > 512 KB or an IndexedDB database > 20 MB serialised is skipped; the success toast reports how many were skipped.
+- **Public suffixes**: platform domains like `github.io` / `vercel.app` are treated as one site — disable "Include subdomains" there.
+- **WebDAV password** is stored in plain text in `chrome.storage.local`.
+
+### Development
+
+Zero build: native ES Modules, no `npm install`. See the directory map in the Chinese section above.
+
+Release: bump `version` in `manifest.json`, push tag `vX.Y.Z`; GitHub Actions zips and publishes a Release.
+
+### License
+
+Apache License 2.0

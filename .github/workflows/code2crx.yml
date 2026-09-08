@@ -1,5 +1,6 @@
 name: Build and Release Chrome Extension
 
+# 本项目是零构建（原生 ES Module），发布只需打 zip。
 on:
   push:
     tags:
@@ -8,27 +9,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build extension
-        run: npm run build
+      - name: Check manifest version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VER=$(node -p "require('./manifest.json').version")
+          echo "tag=$TAG manifest=$VER"
+          test "$TAG" = "$VER"
 
       - name: Package extension
-        run: npx crx pack ./dist --zip ./dist/extension.zip
+        run: |
+          mkdir -p dist
+          zip -r "dist/SwitchCookies-${GITHUB_REF_NAME}.zip" \
+            manifest.json background.js popup.html popup.css src icons LICENSE README.md \
+            -x '*.DS_Store'
 
       - name: Upload to Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ./dist/extension.zip
+          artifacts: dist/*.zip
+          generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
