@@ -140,39 +140,65 @@ function restoreInPage(data) {
     return o;
   };
 
+  // 写回策略（"不拆房子，只换东西"）：
+  //   IndexedDB 只有 deleteDatabase 和版本升级需要独占，页面若握着连接就会 blocked；
+  //   而普通 readwrite 事务可以与页面连接并存。因此：
+  //   1) 用当前版本打开 → 需要的 store 都在 → clear + put，零阻塞（同站切账号几乎总走这条）；
+  //   2) 缺 store 才做版本升级补建，此时向页面连接发 versionchange，规范的库会自动让路；
+  //      仍被占用超过 1.5 秒才报 idbBlocked。
   const restoreDb = (db) => new Promise((resolve) => {
     let settled = false;
     const finish = (kind) => { if (settled) return; settled = true; if (kind === 'ok') report.idbOk++; else report[kind].push(db.name); resolve(); };
-    // 若页面仍持有连接，deleteDatabase 会一直 blocked；等 1.5 秒后放弃该库
-    const timer = setTimeout(() => finish('idbBlocked'), 1500);
-    const del = indexedDB.deleteDatabase(db.name);
-    del.onerror = () => { clearTimeout(timer); finish('idbFailed'); };
-    del.onblocked = () => { /* 等 timer */ };
-    del.onsuccess = () => {
-      clearTimeout(timer);
-      const open = indexedDB.open(db.name, db.version || 1);
-      open.onerror = () => finish('idbFailed');
-      open.onupgradeneeded = () => {
-        const d = open.result;
-        for (const s of db.stores) {
+
+    const writeRecords = (d) => {
+      const names = db.stores.map(s => s.name);
+      if (!names.length) { d.close(); return finish('ok'); }
+      let tx;
+      try { tx = d.transaction(names, 'readwrite'); } catch { d.close(); return finish('idbFailed'); }
+      for (const s of db.stores) {
+        const st = tx.objectStore(s.name);
+        st.clear();
+        for (const r of s.records) {
+          try { if (s.keyPath !== null && s.keyPath !== undefined) st.put(decode(r.v)); else st.put(decode(r.v), decode(r.k)); } catch {}
+        }
+      }
+      tx.oncomplete = () => { d.close(); finish('ok'); };
+      tx.onerror = () => { d.close(); finish('idbFailed'); };
+      tx.onabort = () => { d.close(); finish('idbFailed'); };
+    };
+
+    const ensureStores = (d) => {
+      for (const s of db.stores) {
+        if (!d.objectStoreNames.contains(s.name)) {
           const st = d.createObjectStore(s.name, { keyPath: s.keyPath ?? undefined, autoIncrement: !!s.autoIncrement });
           for (const ix of s.indexes || []) { try { st.createIndex(ix.name, ix.keyPath, { unique: !!ix.unique, multiEntry: !!ix.multiEntry }); } catch {} }
         }
-      };
-      open.onsuccess = () => {
-        const d = open.result;
-        const names = db.stores.map(s => s.name);
-        if (!names.length) { d.close(); return finish('ok'); }
-        const tx = d.transaction(names, 'readwrite');
-        for (const s of db.stores) {
-          const st = tx.objectStore(s.name);
-          for (const r of s.records) {
-            try { if (s.keyPath !== null && s.keyPath !== undefined) st.put(decode(r.v)); else st.put(decode(r.v), decode(r.k)); } catch {}
-          }
-        }
-        tx.oncomplete = () => { d.close(); finish('ok'); };
-        tx.onerror = () => { d.close(); finish('idbFailed'); };
-      };
+      }
+    };
+
+    // 第 2 步：需要建 store 时以更高版本打开（可能被页面阻塞）
+    const upgradeOpen = (version) => {
+      const timer = setTimeout(() => finish('idbBlocked'), 1500);
+      const open = indexedDB.open(db.name, version);
+      open.onblocked = () => { /* 等页面连接响应 versionchange 让路，或 timer 超时 */ };
+      open.onerror = () => { clearTimeout(timer); finish('idbFailed'); };
+      open.onupgradeneeded = () => { try { ensureStores(open.result); } catch { /* 在 onsuccess 里会因缺 store 失败 */ } };
+      open.onsuccess = () => { clearTimeout(timer); writeRecords(open.result); };
+    };
+
+    // 第 1 步：以现有版本打开（不传 version = 不触发升级、不会 blocked）
+    const open = indexedDB.open(db.name);
+    open.onerror = () => finish('idbFailed');
+    open.onupgradeneeded = () => { try { ensureStores(open.result); } catch {} }; // 数据库不存在时首次创建
+    open.onsuccess = () => {
+      const d = open.result;
+      // 若页面稍后要升级版本，我们主动让路
+      d.onversionchange = () => d.close();
+      const missing = db.stores.some(s => !d.objectStoreNames.contains(s.name));
+      if (!missing) return writeRecords(d);
+      const nextVersion = Math.max(d.version, db.version || 1) + 1;
+      d.close();
+      upgradeOpen(nextVersion);
     };
   });
 
