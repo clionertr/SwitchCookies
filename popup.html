@@ -1,296 +1,221 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <title>SwitchCookies</title>
   <meta charset="UTF-8">
+  <title>SwitchCookies</title>
   <link rel="stylesheet" href="popup.css">
-  <style>
-    /* 滚动条样式 - 日间模式 */
-    ::-webkit-scrollbar {
-      width: 8px !important;
-      height: 8px !important;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1 !important;
-      border-radius: 4px !important;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #ccc !important;
-      border-radius: 4px !important;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #aaa !important;
-    }
-
-    /* 夜间模式滚动条样式 - 完全覆盖 */
-    html.night-mode ::-webkit-scrollbar,
-    body.night-mode ::-webkit-scrollbar,
-    body.night-mode *::-webkit-scrollbar {
-      width: 8px !important;
-      height: 8px !important;
-    }
-
-    html.night-mode ::-webkit-scrollbar-track,
-    body.night-mode ::-webkit-scrollbar-track,
-    body.night-mode *::-webkit-scrollbar-track {
-      background: #2d2d2d !important;
-      border-radius: 4px !important;
-      border-left: none !important;
-      border: none !important;
-      box-shadow: none !important;
-    }
-
-    html.night-mode ::-webkit-scrollbar-thumb,
-    body.night-mode ::-webkit-scrollbar-thumb,
-    body.night-mode *::-webkit-scrollbar-thumb {
-      background: #111 !important;
-      border-radius: 4px !important;
-      border: none !important;
-      box-shadow: none !important;
-    }
-
-    html.night-mode ::-webkit-scrollbar-thumb:hover,
-    body.night-mode ::-webkit-scrollbar-thumb:hover,
-    body.night-mode *::-webkit-scrollbar-thumb:hover {
-      background: #222 !important;
-    }
-
-    html.night-mode ::-webkit-scrollbar-corner,
-    body.night-mode ::-webkit-scrollbar-corner,
-    body.night-mode *::-webkit-scrollbar-corner {
-      background: #2d2d2d !important;
-    }
-  </style>
 </head>
 <body>
-  <div class="container">
-<!-- 语言切换按钮 -->
-<div style="display: flex; align-items: center; gap: 8px;">
-  <button id="quick-night-mode-toggle" title="切换夜间模式">🌙</button>
-  <div class="lang-switcher">
-    <button id="lang-switch-btn" title="Language">🌐</button>
-    <select id="lang-select" style="display: none; margin-left: 4px;">
-      <option value="zh-CN">简体中文</option>
-      <option value="en-US">English</option>
-    </select>
-  </div>
-</div>
-    <h1 data-i18n="title">SwitchCookies</h1>
+  <!-- 顶部：当前网站 -->
+  <header class="site-bar">
+    <img id="site-favicon" class="site-favicon" alt="" hidden>
+    <div class="site-text">
+      <div id="site-domain" class="site-domain" data-i18n="loading"></div>
+      <div id="site-sub" class="site-sub"></div>
+    </div>
+    <button id="btn-open-tab" class="icon-btn" data-i18n-title="open_in_tab" aria-label="open in tab">⤢</button>
+  </header>
 
-    <div class="section">
-      <h2 data-i18n="current_site">Current Site</h2>
-      <div id="current-site" data-i18n="current_site_loading">Loading...</div>
-    </div>
+  <!-- 标签栏 -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" role="tab" data-tab="profiles" data-i18n="tab_profiles"></button>
+    <button class="tab" role="tab" data-tab="cookies" data-i18n="tab_cookies"></button>
+    <button class="tab" role="tab" data-tab="more" data-i18n="tab_more"></button>
+  </nav>
 
-    <div class="section">
-      <h2 data-i18n="cookie_profiles">Cookie Profiles</h2>
-      <div class="profile-search-container" style="margin-bottom: 10px;">
-        <div class="search-input-wrapper">
-          <input type="text" id="profile-search-input" data-i18n-placeholder="search_profiles_placeholder" placeholder="Search profiles..." autocomplete="off">
-          <button id="clear-profile-search" class="clear-search-btn" title="Clear profile search" data-i18n="clear_search_btn" style="display: none;">×</button>
+  <main id="main">
+    <!-- ===== 账号页 ===== -->
+    <section id="view-profiles" class="view active">
+      <button id="btn-save" class="btn btn-primary btn-big">
+        <span class="btn-icon">＋</span>
+        <span class="btn-text">
+          <strong data-i18n="save_current"></strong>
+          <small data-i18n="save_current_hint"></small>
+        </span>
+      </button>
+
+      <form id="save-form" class="card save-form" hidden autocomplete="off">
+        <label class="field">
+          <span data-i18n="profile_name"></span>
+          <input id="save-name" type="text" data-i18n-placeholder="profile_name_placeholder" maxlength="60">
+        </label>
+        <div id="save-name-warn" class="hint warn" hidden></div>
+        <label class="check">
+          <input id="save-subdomains" type="checkbox">
+          <span data-i18n="include_subdomains"></span>
+        </label>
+        <div class="hint" data-i18n="include_subdomains_hint"></div>
+        <details class="advanced">
+          <summary data-i18n="capture_hint"></summary>
+          <label class="check"><input id="save-ls" type="checkbox"><span data-i18n="capture_ls"></span><span id="save-ls-count" class="badge"></span></label>
+          <label class="check"><input id="save-ss" type="checkbox"><span data-i18n="capture_ss"></span><span id="save-ss-count" class="badge"></span></label>
+          <label class="check"><input id="save-idb" type="checkbox"><span data-i18n="capture_idb"></span><span id="save-idb-count" class="badge"></span></label>
+        </details>
+        <div class="form-actions">
+          <button type="submit" id="save-submit" class="btn btn-primary" data-i18n="save"></button>
+          <button type="button" id="save-cancel" class="btn btn-ghost" data-i18n="cancel"></button>
         </div>
-      </div>
-      <div class="profile-controls">
-        <button id="save-profile" data-i18n="save_current_cookies">Save Current Cookies</button>
+      </form>
+
+      <div class="search-row">
+        <input id="profile-search" type="search" data-i18n-placeholder="search">
       </div>
 
-      <div id="profiles-list" class="profiles-list">
-        <div class="no-profiles" data-i18n="no_saved_profiles">No saved profiles</div>
+      <div id="profiles-empty" class="empty" hidden>
+        <div class="empty-icon">🍪</div>
+        <div class="empty-title" data-i18n="empty_title"></div>
+        <ol class="empty-steps">
+          <li data-i18n="empty_step1"></li>
+          <li data-i18n="empty_step2"></li>
+          <li data-i18n="empty_step3"></li>
+        </ol>
       </div>
 
-      <div class="export-all-container">
-        <button id="export-all-profiles" class="warning-btn" data-i18n="export_all_profiles">Export All Profiles</button>
-        <div class="security-warning">
-          <span class="warning-icon">📋</span>
-          <span class="warning-text" data-i18n="export_all_profiles_warning">Export all cookie profiles for backup or migration to another device.</span>
-        </div>
+      <div id="profiles-site" class="group" hidden>
+        <h3 class="group-title" data-i18n="site_profiles"></h3>
+        <div class="list"></div>
       </div>
-    </div>
 
-    <div class="section">
-      <h2 data-i18n="cookie_management">Cookie Management</h2>
-      <div class="checkbox-item include-subdomains">
-        <input type="checkbox" id="include-subdomains" checked>
-        <label for="include-subdomains" data-i18n="include_all_subdomains">Include all subdomains (e.g., www.example.com and login.example.com)</label>
-      </div>
-      <div class="button-group">
-        <button id="export-cookies" data-i18n="export_cookies">Export Cookies</button>
-        <button id="import-cookies" data-i18n="import_cookies">Import Cookies</button>
-        <button id="clear-cookies" class="danger-btn" data-i18n="clear_all_cookies">Clear cookies for this site and all its subdomains</button>
-        <input type="file" id="import-file" style="display: none;">
-      </div>
-      <div class="export-all-container">
-        <button id="export-all-cookies" class="warning-btn" data-i18n="export_all_cookies">导出全部Cookies</button>
-        <div class="security-warning">
-          <span class="warning-icon">⚠️</span>
-          <span class="warning-text" data-i18n="export_all_warning">警告：导出全部Cookies存在安全风险，可能导致账户泄露，请谨慎操作。</span>
-        </div>
-      </div>
-    </div>
+      <details id="profiles-other" class="group" hidden>
+        <summary class="group-title"><span data-i18n="other_profiles"></span> <span class="count"></span></summary>
+        <div class="list"></div>
+      </details>
 
-    <div class="section">
-      <h2 data-i18n="current_cookies">Current Cookies</h2>
-      <div class="cookie-search-container">
-        <div class="search-input-wrapper">
-          <input type="text" id="cookie-search" data-i18n-placeholder="search_cookies_placeholder" placeholder="Search cookies..." autocomplete="off">
-          <button id="clear-search" class="clear-search-btn" title="Clear search" data-i18n="clear_search_btn">×</button>
-        </div>
-        <div id="search-autocomplete" class="search-autocomplete"></div>
-      </div>
-      <div class="cookies-container">
-        <div id="cookies-list" class="cookies-list" data-i18n="loading_cookies">Loading cookies...</div>
-      </div>
-    </div>
+      <div id="profiles-nomatch" class="hint center" data-i18n="no_match" hidden></div>
+    </section>
 
-    <div class="section">
-      <h2 data-i18n="ip_info">IP Information</h2>
-      <div id="ip-info" data-i18n="loading_ip_info">Loading IP information...</div>
-      <h2 data-i18n="risk_assessment">Risk Assessment</h2>
-      <div id="risk-assessment" data-i18n="loading_risk_assessment">Loading risk assessment...</div>
-    </div>
-  <!-- WebDAV 支持 Section -->
-  <div class="section" id="webdav-section">
-    <h2>WebDAV</h2>
-    <div class="form-group">
-      <label for="webdav-url" data-i18n="webdav_url">WebDAV 服务器地址</label>
-      <input type="text" id="webdav-url" class="form-input" placeholder="https://example.com/webdav/">
-    </div>
-    <div class="form-group">
-      <label for="webdav-username" data-i18n="webdav_username">用户名</label>
-      <input type="text" id="webdav-username" class="form-input" placeholder="用户名">
-    </div>
-    <div class="form-group">
-      <label for="webdav-password" data-i18n="webdav_password">密码</label>
-      <input type="password" id="webdav-password" class="form-input" placeholder="密码">
-    </div>
-    <div class="form-actions" style="margin-bottom: 8px;">
-      <button id="webdav-save" data-i18n="webdav_save_config">保存配置</button>
-    </div>
-    <div class="form-actions" style="gap: 8px;">
-      <button id="webdav-upload" data-i18n="webdav_upload">上传 Cookies 配置</button>
-      <button id="webdav-download" data-i18n="webdav_download">从 WebDAV 导入</button>
-    </div>
-    <div id="webdav-status" class="status-message" style="margin-top: 8px; color: #d9534f;"></div>
-  </div>
-  <!-- 夜间模式 Section -->
-  <div class="section">
-    <h2 data-i18n="night_mode">夜间模式</h2>
-    <div class="checkbox-item">
-      <input type="checkbox" id="night-mode-toggle">
-      <label for="night-mode-toggle" data-i18n="enable_night_mode">启用夜间模式</label>
-    </div>
-    <div class="form-group">
-      <label for="brightness" data-i18n="brightness">亮度</label>
-      <input type="range" id="brightness" min="50" max="100" value="80">
-    </div>
-    <div class="form-group">
-      <label for="contrast" data-i18n="contrast">对比度</label>
-      <input type="range" id="contrast" min="80" max="120" value="100">
-    </div>
-    <div class="form-group">
-      <button id="reset-replace-warnings" data-i18n="reset_replace_warnings">重置替换警告</button>
-      <div class="warning-text" style="font-size: 12px; margin-top: 5px;" data-i18n="reset_replace_warnings_desc">重新启用所有 Cookie 替换确认提示</div>
-    </div>
-  </div>
-  </div>
+    <!-- ===== Cookie 页 ===== -->
+    <section id="view-cookies" class="view">
+      <div class="seg" role="radiogroup">
+        <button class="seg-btn active" data-scope="site" data-i18n="scope_site"></button>
+        <button class="seg-btn" data-scope="all" data-i18n="scope_all"></button>
+      </div>
 
-  <!-- Cookie Editor Modal -->
-  <div id="cookie-editor-modal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2 data-i18n="edit_cookie">Edit Cookie</h2>
-      <div class="cookie-form">
-        <div class="form-group">
-          <label for="cookie-name" data-i18n="cookie_name">Name</label>
-          <input type="text" id="cookie-name" class="form-input">
+      <div class="search-row">
+        <input id="cookie-search" type="search" data-i18n-placeholder="search">
+        <span id="cookie-count" class="count"></span>
+      </div>
+
+      <div id="cookies-toolbar-site" class="toolbar">
+        <button id="btn-add-cookie" class="btn btn-sm">＋ <span data-i18n="add_cookie"></span></button>
+        <button id="btn-clear-site" class="btn btn-sm btn-danger-ghost" data-i18n="clear_site"></button>
+      </div>
+      <div id="cookies-toolbar-all" class="toolbar" hidden>
+        <button id="btn-toggle-groups" class="btn btn-sm" data-i18n="expand_all"></button>
+        <button id="btn-export-all-cookies" class="btn btn-sm btn-danger-ghost" data-i18n="export_all_cookies"></button>
+      </div>
+      <div id="all-warning" class="hint warn" data-i18n="all_cookies_warning" hidden></div>
+
+      <div id="cookies-list" class="list"></div>
+    </section>
+
+    <!-- ===== 更多页 ===== -->
+    <section id="view-more" class="view">
+      <section class="card">
+        <h3 data-i18n="sec_data"></h3>
+        <div class="btn-row">
+          <button id="btn-import" class="btn" data-i18n="import_file"></button>
+          <button id="btn-export-profiles" class="btn" data-i18n="export_profiles"></button>
+          <button id="btn-export-site" class="btn" data-i18n="export_site_cookies"></button>
         </div>
-        <div class="form-group">
-          <label for="cookie-value" data-i18n="cookie_value">Value</label>
-          <input type="text" id="cookie-value" class="form-input">
+        <div class="hint" data-i18n="import_hint"></div>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+      </section>
+
+      <section class="card">
+        <h3 data-i18n="sec_webdav"></h3>
+        <div class="hint" data-i18n="webdav_hint"></div>
+        <label class="field"><span data-i18n="webdav_url"></span><input id="webdav-url" type="url" placeholder="https://dav.example.com/dav/"></label>
+        <div class="two-col">
+          <label class="field"><span data-i18n="webdav_user"></span><input id="webdav-user" type="text" autocomplete="off"></label>
+          <label class="field"><span data-i18n="webdav_pass"></span><input id="webdav-pass" type="password" autocomplete="off"></label>
         </div>
-        <div class="form-group">
-          <label for="cookie-domain" data-i18n="cookie_domain">Domain</label>
-          <input type="text" id="cookie-domain" class="form-input">
+        <div class="btn-row">
+          <button id="webdav-save" class="btn" data-i18n="webdav_save"></button>
+          <button id="webdav-upload" class="btn btn-primary" data-i18n="webdav_upload"></button>
+          <button id="webdav-download" class="btn" data-i18n="webdav_download"></button>
         </div>
-        <div class="form-group">
-          <label for="cookie-path" data-i18n="cookie_path">Path</label>
-          <input type="text" id="cookie-path" class="form-input">
+      </section>
+
+      <section class="card">
+        <h3 data-i18n="sec_ip"></h3>
+        <div class="hint" data-i18n="ip_hint"></div>
+        <div class="btn-row"><button id="btn-ip" class="btn" data-i18n="ip_check"></button></div>
+        <div id="ip-result" class="kv" hidden></div>
+      </section>
+
+      <section class="card">
+        <h3 data-i18n="sec_appearance"></h3>
+        <div class="row">
+          <span data-i18n="theme"></span>
+          <div class="seg seg-sm" id="theme-seg">
+            <button class="seg-btn" data-theme="system" data-i18n="theme_system"></button>
+            <button class="seg-btn" data-theme="light" data-i18n="theme_light"></button>
+            <button class="seg-btn" data-theme="dark" data-i18n="theme_dark"></button>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="cookie-expiration" data-i18n="cookie_expiration">Expiration</label>
-          <input type="datetime-local" id="cookie-expiration" class="form-input">
-        </div>
-        <div class="form-group">
-          <label for="cookie-sameSite" data-i18n="cookie_same_site">Same Site</label>
-          <select id="cookie-sameSite" class="form-input">
-            <option value="unspecified" data-i18n="samesite_unspecified">Unspecified (Lax by default)</option>
-            <option value="no_restriction" data-i18n="samesite_no_restriction">No Restriction</option>
-            <option value="lax" data-i18n="samesite_lax">Lax</option>
-            <option value="strict" data-i18n="samesite_strict">Strict</option>
+        <div class="row">
+          <span data-i18n="language"></span>
+          <select id="lang-select">
+            <option value="auto" data-i18n="lang_auto"></option>
+            <option value="zh-CN">简体中文</option>
+            <option value="en-US">English</option>
           </select>
         </div>
-        <div class="form-group checkbox-group">
-          <div class="checkbox-item">
-            <input type="checkbox" id="cookie-hostOnly">
-            <label for="cookie-hostOnly" data-i18n="host_only">Host Only</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" id="cookie-session">
-            <label for="cookie-session" data-i18n="session">Session</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" id="cookie-secure">
-            <label for="cookie-secure" data-i18n="secure">Secure</label>
-          </div>
-          <div class="checkbox-item">
-            <input type="checkbox" id="cookie-httpOnly">
-            <label for="cookie-httpOnly" data-i18n="http_only">Http Only</label>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button id="save-cookie-btn" data-i18n="save">Save</button>
-          <button id="cancel-cookie-btn" data-i18n="cancel">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
+      </section>
 
-  <!-- Clear Cookies Confirmation Modal -->
-  <div id="clear-cookies-modal" class="modal">
-    <div class="modal-content">
-      <span class="close clear-cookies-close">&times;</span>
-      <h2 data-i18n="clear_all_cookies_modal">Clear cookies for this site and all its subdomains</h2>
-      <p data-i18n="clear_all_cookies_confirm">Are you sure you want to clear cookies for <span id="clear-domain" class="highlight-text"></span> and all its subdomains?</p>
-      <div class="cookies-to-clear">
-        <h3 data-i18n="cookies_to_be_removed">The following cookies will be removed:</h3>
-        <div id="cookies-to-clear-list" class="cookies-list-confirm"></div>
+      <section class="card">
+        <h3 data-i18n="sec_advanced"></h3>
+        <div class="hint" data-i18n="default_capture"></div>
+        <div class="check-row">
+          <label class="check"><input id="set-ls" type="checkbox"><span data-i18n="capture_ls"></span></label>
+          <label class="check"><input id="set-ss" type="checkbox"><span data-i18n="capture_ss"></span></label>
+          <label class="check"><input id="set-idb" type="checkbox"><span data-i18n="capture_idb"></span></label>
+        </div>
+        <div class="btn-row"><button id="btn-reset-confirms" class="btn btn-sm" data-i18n="reset_confirms"></button></div>
+        <div id="storage-usage" class="hint"></div>
+        <div id="version" class="hint"></div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Cookie 编辑抽屉 -->
+  <div id="sheet" class="sheet" hidden>
+    <div class="sheet-backdrop"></div>
+    <form id="cookie-form" class="sheet-panel" autocomplete="off">
+      <div class="sheet-head">
+        <h3 id="sheet-title"></h3>
+        <button type="button" id="sheet-close" class="icon-btn" aria-label="close">✕</button>
       </div>
-      <div class="checkbox-item clear-subdomains">
-        <input type="checkbox" id="clear-subdomains" checked>
-        <label for="clear-subdomains" data-i18n="include_all_subdomains_modal">Include all subdomains (recommended)</label>
+      <label class="field"><span data-i18n="f_name"></span><input id="ck-name" type="text" required></label>
+      <label class="field"><span data-i18n="f_value"></span><textarea id="ck-value" rows="3"></textarea></label>
+      <div class="two-col">
+        <label class="field"><span data-i18n="f_domain"></span><input id="ck-domain" type="text"></label>
+        <label class="field"><span data-i18n="f_path"></span><input id="ck-path" type="text" value="/"></label>
       </div>
+      <label class="check"><input id="ck-session" type="checkbox"><span data-i18n="f_session"></span></label>
+      <label class="field" id="ck-expires-field"><span data-i18n="f_expires"></span><input id="ck-expires" type="datetime-local"></label>
+      <div class="two-col">
+        <label class="check"><input id="ck-secure" type="checkbox"><span data-i18n="f_secure"></span></label>
+        <label class="check"><input id="ck-httponly" type="checkbox"><span data-i18n="f_httponly"></span></label>
+      </div>
+      <label class="field"><span data-i18n="f_samesite"></span>
+        <select id="ck-samesite">
+          <option value="unspecified" data-i18n="samesite_unspecified"></option>
+          <option value="no_restriction" data-i18n="samesite_no_restriction"></option>
+          <option value="lax" data-i18n="samesite_lax"></option>
+          <option value="strict" data-i18n="samesite_strict"></option>
+        </select>
+      </label>
       <div class="form-actions">
-        <button id="confirm-clear-btn" class="danger-btn" data-i18n="clear_all">Clear All</button>
-        <button id="cancel-clear-btn" data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" data-i18n="save"></button>
+        <button type="button" id="sheet-cancel" class="btn btn-ghost" data-i18n="cancel"></button>
       </div>
-    </div>
+    </form>
   </div>
 
-  <script src="src/popup/i18n.js"></script>
-  <script src="src/popup/uiUtils.js"></script>
-  <script src="src/popup/cookieLoader.js"></script>
-  <script src="src/popup/cookieEditor.js"></script>
-<script src="src/popup/cookieClearer.js"></script>
-  <script src="src/popup/cookieDataHandler.js"></script>
-  <script src="src/popup/profileManager.js"></script>
-  <script src="src/popup/webdavManager.js"></script>
-<script src="src/popup/nightModeManager.js"></script>
-  <script src="src/popup/ipInfoManager.js"></script>
-  <script src="src/popup/searchManager.js"></script>
-  <script src="src/popup/settingsManager.js"></script>
-  <script src="popup.js"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="src/popup/main.js"></script>
 </body>
 </html>
