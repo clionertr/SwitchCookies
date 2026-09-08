@@ -55,7 +55,7 @@ Chrome 119+。
 
 ### 已知边界
 
-- **IndexedDB 写回**：若页面在切换瞬间仍持有数据库连接，该库会被跳过并提示"被页面占用"，刷新后再切一次即可。含 `Blob` / `File` 的记录无法序列化，会被跳过。
+- **IndexedDB 写回**：采用原地 `clear + put`，页面持有连接也不会阻塞（v3.0.1 起）。只有当网站升级了数据库结构、快照里的 store 已不存在时才需要版本升级；此时若页面连接不响应 `versionchange` 让路，该库会被跳过并提示"被页面占用"。含 `Blob` / `File` 的记录无法序列化，会被跳过。
 - **sharedStorage**：浏览器有意对扩展隔离，无 API 可读，不支持。
 - **超大数据**：单条 localStorage 值 > 512 KB、单个 IndexedDB 库序列化后 > 20 MB 会被跳过，保存成功提示里会注明跳过数量。
 - **公共后缀**：`github.io`、`vercel.app` 这类平台域名会被当成一个站，请关闭"包含子域名"。
@@ -128,7 +128,7 @@ Each account: domain, subdomain flag, all cookies (including CHIPS partitioned c
 
 ### Known limits
 
-- **IndexedDB restore**: if the page still holds a database connection at the moment of switching, that database is skipped with an "in use" notice — reload and switch again. Records containing `Blob` / `File` cannot be serialised and are skipped.
+- **IndexedDB restore**: done in place with `clear + put`, so an open page connection does not block it (since v3.0.1). A version upgrade is only needed when the site changed its schema and a snapshot store no longer exists; if the page's connection then ignores `versionchange`, that database is skipped with an "in use" notice. Records containing `Blob` / `File` cannot be serialised and are skipped.
 - **sharedStorage**: deliberately isolated from extensions by the browser; no API exists. Not supported.
 - **Large values**: a single localStorage entry > 512 KB or an IndexedDB database > 20 MB serialised is skipped; the success toast reports how many were skipped.
 - **Public suffixes**: platform domains like `github.io` / `vercel.app` are treated as one site — disable "Include subdomains" there.
