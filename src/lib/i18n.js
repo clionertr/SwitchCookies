@@ -62,7 +62,14 @@ const DICT = {
     empty_step1: '① 在网站登录账号 A，点上方「保存当前登录」',
     empty_step2: '② 退出，登录账号 B，再保存一次',
     empty_step3: '③ 之后点「切换」即可秒换账号',
+    empty_tip_menu: '小技巧：在网页上右键 → SwitchCookies，也能直接切换',
     no_match: '没有匹配的账号',
+
+    // 右键菜单
+    menu_root: 'SwitchCookies',
+    menu_no_profiles: '本站还没有保存的账号',
+    menu_save_current: '＋ 保存当前登录…',
+    menu_open: '打开面板…',
 
     // Cookie 页
     scope_site: '本站',
@@ -205,7 +212,13 @@ const DICT = {
     empty_step1: '① Log in as account A, click "Save current login" above',
     empty_step2: '② Log out, log in as account B, save again',
     empty_step3: '③ From then on, click "Switch" to swap instantly',
+    empty_tip_menu: 'Tip: right-click a page → SwitchCookies to switch without opening this panel',
     no_match: 'No matching accounts',
+
+    menu_root: 'SwitchCookies',
+    menu_no_profiles: 'No saved accounts for this site',
+    menu_save_current: '＋ Save current login…',
+    menu_open: 'Open panel…',
 
     scope_site: 'This site',
     scope_all: 'All sites',
@@ -299,7 +312,8 @@ export function resolveLang(pref) {
 
 export function setLang(lang) {
   currentLang = DICT[lang] ? lang : 'en-US';
-  document.documentElement.lang = currentLang;
+  // Service Worker 里没有 document，仅在页面环境同步 <html lang>
+  if (typeof document !== 'undefined') document.documentElement.lang = currentLang;
 }
 
 export function getLang() {
