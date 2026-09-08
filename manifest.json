@@ -10,7 +10,8 @@
     "unlimitedStorage",
     "activeTab",
     "tabs",
-    "scripting"
+    "scripting",
+    "favicon"
   ],
   "host_permissions": [
     "<all_urls>"
