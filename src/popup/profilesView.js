@@ -8,7 +8,7 @@ import { $, h, toast, inlineConfirm, downloadJson, formatTime, debounce, todaySt
 import { getCookiesForSite, replaceSiteCookies } from '../lib/cookies.js';
 import { getProfiles, upsertProfile, deleteProfile, renameProfile } from '../lib/storage.js';
 import { probePageStorage, capturePageStorage, restorePageStorage } from '../lib/pageStorage.js';
-import { isRelatedDomain, extractRootDomain } from '../lib/domain.js';
+import { isRelatedDomain, extractRootDomain, isIpOrLocal } from '../lib/domain.js';
 
 let profiles = {};
 let openMenu = null;
@@ -189,7 +189,7 @@ function card(name, p, match) {
   const meta = h('div', { class: 'profile-meta' },
     h('span', {}, t('cookies_count', { n: (p.cookies || []).length })),
     !match ? h('span', { class: 'tag' }, p.domain) : null,
-    p.includesSubdomains !== false ? h('span', { class: 'tag' }, '*.' + extractRootDomain(p.domain)) : null,
+    p.includesSubdomains !== false && !isIpOrLocal(p.domain) ? h('span', { class: 'tag' }, '*.' + extractRootDomain(p.domain)) : null,
     p.localStorage ? h('span', { class: 'tag' }, 'LS') : null,
     p.sessionStorage ? h('span', { class: 'tag' }, 'SS') : null,
     p.indexedDB ? h('span', { class: 'tag' }, 'IDB') : null,
