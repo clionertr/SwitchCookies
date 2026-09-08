@@ -259,3 +259,4 @@ details.domain-group .cookie { border-radius: 6px; background: var(--bg); }
 
 /* ---------- 禁用态（非网页页面） ---------- */
 body.no-site #btn-save, body.no-site #cookies-toolbar-site { opacity: .5; pointer-events: none; }
+.rename-input { width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--primary); background: var(--bg); color: var(--text); font-weight: 600; }
