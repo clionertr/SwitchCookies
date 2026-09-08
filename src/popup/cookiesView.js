@@ -101,8 +101,13 @@ function renderAll(list) {
       toast(t('cleared', { n: stat.ok }), 'info');
       load();
     } }, '🗑');
+    // 分组标题上的 ＋：新增该域名下的 Cookie，域名自动填好（沿用组内第一条的 domain 写法）
+    const addBtn = h('button', { class: 'icon-btn', title: t('add_cookie'), onclick: (e) => {
+      e.preventDefault(); e.stopPropagation();
+      openCookieEditor(null, { domain: items[0]?.domain || key }, load);
+    } }, '＋');
     det.append(
-      h('summary', {}, h('span', { class: 'domain-name' }, key), h('span', { class: 'count' }, items.length), delBtn),
+      h('summary', {}, h('span', { class: 'domain-name' }, key), h('span', { class: 'count' }, items.length), addBtn, delBtn),
       h('div', { class: 'list' }, ...items.map(c => row(c, true))),
     );
     return det;
@@ -162,6 +167,8 @@ export function initCookiesView() {
   $$('#view-cookies .seg-btn').forEach(b => b.addEventListener('click', () => setScope(b.dataset.scope)));
   $('#cookie-search').addEventListener('input', debounce(render, 120));
   $('#btn-add-cookie').addEventListener('click', () => openCookieEditor(null, { domain: ctx.hostname }, load));
+  // 全部网站范围：域名留空由用户填写，默认给当前站点做参考
+  $('#btn-add-cookie-all').addEventListener('click', () => openCookieEditor(null, { domain: ctx.hostname || '' }, load));
   $('#btn-clear-site').addEventListener('click', clearSite);
   $('#btn-toggle-groups').addEventListener('click', toggleGroups);
   $('#btn-export-all-cookies').addEventListener('click', exportAll);
