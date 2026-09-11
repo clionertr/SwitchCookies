@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>SwitchCookies</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="import-page">
+  <section class="card import-drop" id="drop-zone">
+    <h3 data-i18n="import_file"></h3>
+    <p class="hint" data-i18n="import_drop"></p>
+    <label class="btn btn-primary file-btn">
+      <span data-i18n="import_pick"></span>
+      <input id="import-file" type="file" accept=".json,application/json,text/json">
+    </label>
+    <p class="hint" data-i18n="import_hint"></p>
+  </section>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="src/popup/importPage.js"></script>
+</body>
+</html>

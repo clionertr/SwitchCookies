@@ -1,13 +1,13 @@
 // src/popup/moreView.js —— "更多"标签页：数据 / WebDAV / 网络 / 外观 / 高级
 
-import { ctx, notify, onChange, setSetting, reloadTargetTab } from './context.js';
+import { ctx, notify, onChange, setSetting } from './context.js';
 import { t, setLang, resolveLang, applyI18n } from '../lib/i18n.js';
-import { $, $$, h, toast, downloadJson, readFileAsJson, todayStamp } from '../lib/ui.js';
+import { $, $$, h, toast, downloadJson, todayStamp } from '../lib/ui.js';
 import { getProfiles, mergeProfiles, getStorageUsage, formatBytes } from '../lib/storage.js';
-import { setCookies, getCookiesForSite, removeCookies } from '../lib/cookies.js';
 import { getWebdavConfig, saveWebdavConfig, uploadProfiles, downloadProfiles } from '../lib/webdav.js';
 import { fetchIpInfo } from '../lib/ipinfo.js';
 import { setTheme } from '../lib/theme.js';
+import { importSwitchCookiesFile } from '../lib/importFile.js';
 import { exportSiteCookies } from './cookiesView.js';
 
 // ---------------- 导入 / 导出 ----------------
@@ -19,43 +19,20 @@ async function exportProfiles() {
     `switchcookies-profiles-${todayStamp()}.json`);
 }
 
-/** 识别三种文件格式并导入。 */
-async function importFile(file) {
-  let data;
-  try { data = await readFileAsJson(file); } catch { toast(t('import_invalid'), 'error'); return; }
+async function handleImport(file) {
+  try {
+    const r = await importSwitchCookiesFile(file, { hostname: ctx.hostname, tabId: ctx.tab?.id });
+    toast(t(r.key, r.vars), r.kind);
+    if (r.notify) notify(r.notify);
+  } catch (e) {
+    toast(t('save_failed', { error: e.message }), 'error');
+  }
+}
 
-  // 1) 账号文件
-  if (data?.type === 'cookie_profiles' && data.profiles) {
-    try {
-      const r = await mergeProfiles(data.profiles);
-      toast(t('imported_profiles', r), 'success');
-      notify('profiles');
-    } catch (e) {
-      toast(t('save_failed', { error: e.message }), 'error');
-    }
-    return;
-  }
-  // 2) 全部 Cookie 文件
-  if (data?.allDomains && data.cookiesByDomain) {
-    const all = Object.values(data.cookiesByDomain).flat();
-    const stat = await setCookies(all);
-    toast(t('imported_cookies', stat), stat.ok === stat.total ? 'success' : 'info');
-    notify('cookies');
-    return;
-  }
-  // 3) 单站 Cookie 文件：先清本站再写入
-  if (data?.domain && Array.isArray(data.cookies)) {
-    if (ctx.hostname) {
-      const existing = await getCookiesForSite(ctx.hostname, data.includesSubdomains !== false);
-      await removeCookies(existing);
-    }
-    const stat = await setCookies(data.cookies);
-    await reloadTargetTab();
-    toast(t('imported_cookies', stat), stat.ok === stat.total ? 'success' : 'info');
-    notify('cookies');
-    return;
-  }
-  toast(t('import_invalid'), 'error');
+/** 弹窗失焦即销毁；系统文件框会抢走焦点，必须换到独立窗口才能选文件。 */
+async function openImportWindow() {
+  const url = chrome.runtime.getURL(`import.html?tabId=${ctx.tab?.id ?? ''}`);
+  await chrome.windows.create({ url, type: 'popup', width: 420, height: 340, focused: true });
 }
 
 // ---------------- WebDAV ----------------
@@ -149,12 +126,40 @@ function syncSettingsUI() {
 // ---------------- 初始化 ----------------
 
 export function initMoreView() {
-  $('#btn-import').addEventListener('click', () => $('#import-file').click());
-  $('#import-file').addEventListener('change', async (e) => {
-    const f = e.target.files?.[0];
-    if (f) await importFile(f);
-    e.target.value = '';
+  const fileInput = $('#import-file');
+  $('#btn-import').addEventListener('click', async () => {
+    // 独立标签页不会因失焦销毁，可以直接唤起系统文件框
+    if (ctx.inTab) {
+      fileInput.click();
+      return;
+    }
+    try {
+      await openImportWindow();
+      window.close();
+    } catch (e) {
+      toast(t('save_failed', { error: e.message }), 'error');
+    }
   });
+  fileInput.addEventListener('change', async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (f) await handleImport(f);
+  });
+
+  const dataCard = $('#data-card');
+  if (dataCard) {
+    dataCard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dataCard.classList.add('dragover');
+    });
+    dataCard.addEventListener('dragleave', () => dataCard.classList.remove('dragover'));
+    dataCard.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dataCard.classList.remove('dragover');
+      const f = e.dataTransfer?.files?.[0];
+      if (f) await handleImport(f);
+    });
+  }
   $('#btn-export-profiles').addEventListener('click', exportProfiles);
   $('#btn-export-site').addEventListener('click', exportSiteCookies);
 

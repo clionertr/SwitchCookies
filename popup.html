@@ -113,15 +113,14 @@
 
     <!-- ===== 更多页 ===== -->
     <section id="view-more" class="view">
-      <section class="card">
+      <section class="card" id="data-card">
         <h3 data-i18n="sec_data"></h3>
         <div class="btn-row">
-          <button id="btn-import" class="btn" data-i18n="import_file"></button>
-          <button id="btn-export-profiles" class="btn" data-i18n="export_profiles"></button>
-          <button id="btn-export-site" class="btn" data-i18n="export_site_cookies"></button>
+          <button type="button" id="btn-import" class="btn" data-i18n="import_file"></button>
+          <button type="button" id="btn-export-profiles" class="btn" data-i18n="export_profiles"></button>
+          <button type="button" id="btn-export-site" class="btn" data-i18n="export_site_cookies"></button>
         </div>
         <div class="hint" data-i18n="import_hint"></div>
-        <input id="import-file" type="file" accept="application/json,.json" hidden>
       </section>
 
       <section class="card">
@@ -217,6 +216,8 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <!-- 不能用 hidden/display:none：Chrome 会直接忽略程序化 click() -->
+  <input id="import-file" class="sr-file" type="file" accept=".json,application/json,text/json">
 
   <script type="module" src="src/popup/main.js"></script>
 </body>

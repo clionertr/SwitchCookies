@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SwitchCookies",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "一键保存并切换网站登录状态（Cookie + localStorage + sessionStorage + IndexedDB）",
   "minimum_chrome_version": "119",
   "permissions": [

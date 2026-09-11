@@ -112,7 +112,9 @@ const DICT = {
     // 更多页
     sec_data: '数据',
     import_file: '导入文件',
-    import_hint: '支持本扩展导出的账号文件、单站 Cookie 文件、全部 Cookie 文件',
+    import_hint: '支持本扩展导出的账号文件、单站 Cookie 文件、全部 Cookie 文件；也可把 JSON 拖到此卡片',
+    import_pick: '选择 JSON 文件',
+    import_drop: '点击选择或把 JSON 文件拖到这里',
     export_profiles: '导出全部账号',
     export_site_cookies: '导出本站 Cookie',
     imported_profiles: '已导入 {added} 个账号，覆盖 {replaced} 个',
@@ -258,7 +260,9 @@ const DICT = {
 
     sec_data: 'Data',
     import_file: 'Import file',
-    import_hint: 'Accepts account files, single-site cookie files and all-cookies files exported by this extension',
+    import_hint: 'Accepts account files, single-site cookie files and all-cookies files exported by this extension. You can also drop a JSON file on this card.',
+    import_pick: 'Choose JSON file',
+    import_drop: 'Click to choose or drop a JSON file here',
     export_profiles: 'Export all accounts',
     export_site_cookies: 'Export site cookies',
     imported_profiles: 'Imported {added} accounts, overwrote {replaced}',

@@ -58,6 +58,19 @@ body.in-tab { width: min(720px, 100vw); max-height: none; min-height: 100vh; mar
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 [hidden] { display: none !important; }
+/* 文件选择框必须占位但不可见：display:none 会导致 .click() 无反应 */
+.sr-file {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+}
 
 /* ---------- 顶部站点栏 ---------- */
 .site-bar {
@@ -262,3 +275,35 @@ body.no-site #btn-save, body.no-site #cookies-toolbar-site { opacity: .5; pointe
 .rename-input { width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--primary); background: var(--bg); color: var(--text); font-weight: 600; }
 
 details.domain-group summary .icon-btn { width: 24px; height: 24px; font-size: 13px; }
+
+.card.dragover, .import-drop.dragover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+body.import-page {
+  width: 400px;
+  min-height: 260px;
+  max-height: none;
+  padding: 16px;
+}
+.import-drop {
+  min-height: 200px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-style: dashed;
+  gap: 10px;
+}
+.file-btn {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.file-btn input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 0;
+}
